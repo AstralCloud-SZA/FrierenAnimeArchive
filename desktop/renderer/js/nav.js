@@ -1,37 +1,64 @@
-const pageNameEl = document.getElementById("page-name")
+/* ============================================================
+   nav.js — Section navigation + keyboard shortcuts
+============================================================ */
 
-const sections = {
-    news:      document.getElementById("section-news"),
-    mal:       document.getElementById("section-mal"),
-    search:    document.getElementById("section-search"),
-    favorites: document.getElementById("section-favorites"),
-    settings:  document.getElementById("section-settings")
+const SECTIONS = {
+    news:      { label: 'News',         el: null },
+    mal:       { label: 'MyAnimeList',  el: null },
+    search:    { label: 'Quick Search', el: null },
+    favorites: { label: 'Favourites',   el: null },
+    settings:  { label: 'Settings',     el: null }
 }
 
-const sectionLabels = {
-    news:      "News",
-    mal:       "MyAnimeList",
-    search:    "Quick Search",
-    favorites: "Favourites",
-    settings:  "Settings"
+let currentSection = 'news'
+
+function navigateTo (key) {
+    if (!SECTIONS[key]) return
+
+    // Hide all sections
+    Object.keys(SECTIONS).forEach(k => {
+        const el = document.getElementById(`section-${k}`)
+        if (el) el.classList.remove('visible')
+    })
+
+    // Show target
+    const target = document.getElementById(`section-${key}`)
+    if (target) target.classList.add('visible')
+
+    // Update nav items
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.section === key)
+    })
+
+    // Update breadcrumb
+    const pageNameEl = document.getElementById('page-name')
+    if (pageNameEl) pageNameEl.textContent = SECTIONS[key].label
+
+    currentSection = key
 }
 
-function switchSection(name) {
-    Object.values(sections).forEach(s => s.classList.remove("visible"))
-    document.querySelectorAll(".nav-item").forEach(i => i.classList.remove("active"))
-    sections[name].classList.add("visible")
-    document.querySelector(`[data-section="${name}"]`).classList.add("active")
-    pageNameEl.textContent = sectionLabels[name]
-}
-
-document.querySelectorAll(".nav-item").forEach(item => {
-    item.addEventListener("click", () => switchSection(item.dataset.section))
+// Sidebar click
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => navigateTo(item.dataset.section))
 })
 
-// Global search → switch to search tab
-document.getElementById("global-search").addEventListener("keydown", e => {
-    if (e.key === "Enter") {
-        document.getElementById("ddg-input").value = e.target.value
-        switchSection("search")
+// Menu shortcuts from main process (Ctrl+1…5)
+if (window.api && window.api.onNav) {
+    window.api.onNav(section => navigateTo(section))
+}
+
+// Keyboard shortcuts within renderer
+document.addEventListener('keydown', e => {
+    if (e.ctrlKey) {
+        const map = { '1':'news', '2':'mal', '3':'search', '4':'favorites', '5':'settings' }
+        if (map[e.key]) { e.preventDefault(); navigateTo(map[e.key]) }
+    }
+    // Ctrl+K → focus global search
+    if (e.ctrlKey && e.key === 'k') {
+        e.preventDefault()
+        document.getElementById('global-search')?.focus()
     }
 })
+
+// Expose for app.js
+window.navigateTo = navigateTo
