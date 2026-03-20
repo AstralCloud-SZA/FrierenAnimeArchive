@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Frieren Archive</title>
+
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -11,10 +14,12 @@
 </head>
 <body>
 
-<canvas id="snow-canvas"></canvas>
+<!-- Magic canvas — Frieren's Blumen + runes + sparkles -->
+<canvas id="snow-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;"></canvas>
 
 <div class="app-shell">
 
+  <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="brand-orb"></div>
@@ -23,6 +28,7 @@
         <span>Grimoire of Anime</span>
       </div>
     </div>
+
     <div class="nav-section-label">Navigate</div>
     <nav class="sidebar-nav">
       <div class="nav-item active" data-section="news">
@@ -42,6 +48,7 @@
         <span>Favourites</span>
       </div>
     </nav>
+
     <div class="nav-section-label">System</div>
     <nav class="sidebar-nav" style="flex:0;">
       <div class="nav-item" data-section="settings">
@@ -49,20 +56,25 @@
         <span>Settings</span>
       </div>
     </nav>
+
     <div class="sidebar-footer">
       Frieren Archive · v0.1.0<br>
       Rails 8.1.2 · Electron 41
     </div>
   </aside>
 
+  <!-- Header -->
   <header class="app-header">
     <div class="header-breadcrumb">
-      Frieren Archive &rsaquo; <span class="page-name" id="page-name">News</span>
+      Frieren Archive &rsaquo;
+      <span class="page-name" id="page-name">News</span>
     </div>
+
     <div class="header-search">
       <span class="header-search-icon">🔮</span>
       <input type="text" id="global-search" placeholder="Search the world… (DuckDuckGo)">
     </div>
+
     <div class="header-actions">
       <div class="status-pill">
         <div class="status-dot" id="api-dot"></div>
@@ -73,12 +85,16 @@
     </div>
   </header>
 
+  <!-- Main content -->
   <main class="main">
 
+    <!-- News -->
     <div class="section visible" id="section-news">
       <div class="glass-card">
         <div class="card-heading">📜 Latest Anime News</div>
-        <div class="card-body">News fed from Rails API · Jikan &amp; ANN connected next.</div>
+        <div class="card-body">
+          News fed from the Rails API · Jikan &amp; ANN sources connect next.
+        </div>
       </div>
       <div class="news-list" id="news-list">
         <div class="empty-state">
@@ -89,31 +105,40 @@
       </div>
     </div>
 
+    <!-- MyAnimeList -->
     <div class="section" id="section-mal">
       <div class="glass-card">
         <div class="card-heading">📖 MyAnimeList</div>
         <div class="card-body">Search anime powered by Jikan API. OAuth coming soon.</div>
       </div>
-      <div class="empty-state">
+      <div class="search-bar-large">
+        <span class="search-ico">📖</span>
+        <input type="text" id="mal-input" placeholder="Search anime titles…">
+      </div>
+      <button class="search-btn" id="mal-btn">Search Anime</button>
+      <div id="mal-output" style="margin-top:20px;"></div>
+      <div class="empty-state" id="mal-empty">
         <div class="empty-icon">📖</div>
-        <p>MyAnimeList search coming next.</p>
+        <p>Search for any anime above to begin exploring.</p>
         <em>"Knowledge gained through long years of study is never truly lost."</em>
       </div>
     </div>
 
+    <!-- Quick Search (DuckDuckGo) -->
     <div class="section" id="section-search">
       <div class="glass-card">
         <div class="card-heading">🔮 Quick Search · DuckDuckGo</div>
-        <div class="card-body">Instant answers via Rails /api/search/web.</div>
+        <div class="card-body">Instant answers proxied through Rails <code>/api/search/web</code>.</div>
       </div>
       <div class="search-bar-large">
         <span class="search-ico">🔮</span>
         <input type="text" id="ddg-input" placeholder="Ask anything…">
       </div>
       <button class="search-btn" id="ddg-btn">Search the World</button>
-      <div style="margin-top:18px;" id="ddg-output"></div>
+      <div id="ddg-output" style="margin-top:20px;"></div>
     </div>
 
+    <!-- Favourites -->
     <div class="section" id="section-favorites">
       <div class="glass-card">
         <div class="card-heading">⭐ Favourites</div>
@@ -126,24 +151,44 @@
       </div>
     </div>
 
+    <!-- Settings -->
     <div class="section" id="section-settings">
       <div class="glass-card">
         <div class="card-heading">⚙️ Settings</div>
         <div class="card-body">
           <div class="setting-row">
-            <div><div class="setting-label">Rails API</div><div class="setting-desc">http://localhost:3000</div></div>
+            <div>
+              <div class="setting-label">Rails API</div>
+              <div class="setting-desc">http://localhost:3000</div>
+            </div>
             <span class="badge" id="settings-api-badge">Connected</span>
           </div>
           <div class="setting-row">
-            <div><div class="setting-label">Theme</div><div class="setting-desc">Frieren Dark (Grimoire)</div></div>
+            <div>
+              <div class="setting-label">Theme</div>
+              <div class="setting-desc">Celestial Archive · Gold-White</div>
+            </div>
             <span class="badge">Active</span>
           </div>
           <div class="setting-row">
-            <div><div class="setting-label">Snow particles</div><div class="setting-desc">Ambient background effect</div></div>
-            <span class="badge">On</span>
+            <div>
+              <div class="setting-label">Magic Effects</div>
+              <div class="setting-desc">Blumen petals + runes + sparkles</div>
+            </div>
+            <span class="badge">Active</span>
           </div>
           <div class="setting-row">
-            <div><div class="setting-label">Version</div><div class="setting-desc">Frieren Archive v0.1.0 · prototype</div></div>
+            <div>
+              <div class="setting-label">MyAnimeList OAuth</div>
+              <div class="setting-desc">Account linking · coming soon</div>
+            </div>
+            <span class="badge">Pending</span>
+          </div>
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">Version</div>
+              <div class="setting-desc">Frieren Archive v0.1.0 · prototype</div>
+            </div>
           </div>
         </div>
       </div>
@@ -152,9 +197,10 @@
   </main>
 </div>
 
+<!-- Scripts — load in order -->
 <script src="renderer/js/snow.js"></script>
 <script src="renderer/js/nav.js"></script>
 <script src="renderer/js/app.js"></script>
+
 </body>
 </html>
-
