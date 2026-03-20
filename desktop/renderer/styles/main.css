@@ -89,6 +89,7 @@ html, body {
 
 /* ============================================================
    SNOW CANVAS — slightly gold-tinted particles
+   z-index: 0 sits above body background, below app-shell (z:1)
 ============================================================ */
 #snow-canvas {
     position: fixed;
@@ -99,7 +100,7 @@ html, body {
 }
 
 /* ============================================================
-   APP SHELL
+   APP SHELL — transparent so canvas bleeds through
 ============================================================ */
 .app-shell {
     position: relative;
@@ -108,18 +109,24 @@ html, body {
     grid-template-columns: 232px 1fr;
     grid-template-rows: 66px 1fr;
     grid-template-areas:
-    "sidebar header"
-    "sidebar main";
+        "sidebar header"
+        "sidebar main";
     height: 100vh;
+    background: transparent; /* ← canvas must show through here */
 }
 
 /* ============================================================
-   SIDEBAR — pure void, gold breathing glow
+   SIDEBAR — semi-transparent so canvas peeks through
 ============================================================ */
-.sidebar
-{
+.sidebar {
     grid-area: sidebar;
-    background: linear-gradient(180deg, var(--sidebar-bg)  0%, #020509            45%, #010205            100%);
+    /* ✅ rgba instead of solid hex — canvas visible behind sidebar */
+    background: linear-gradient(
+            180deg,
+            rgba(1,  3,  6, 0.90) 0%,
+            rgba(2,  5,  9, 0.90) 45%,
+            rgba(1,  2,  5, 0.92) 100%
+    );
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -139,7 +146,11 @@ html, body {
     height: 148px;
     border-radius: 50%;
     border: 1px solid rgba(240, 208, 112, 0.10);
-    box-shadow: 0 0 0 20px rgba(240, 208, 112, 0.040), 0 0 0 42px rgba(240, 208, 112, 0.018), 0 0 0 66px rgba(240, 208, 112, 0.008), 0 0 60px rgba(240, 208, 112, 0.06);
+    box-shadow:
+            0 0 0 20px rgba(240, 208, 112, 0.040),
+            0 0 0 42px rgba(240, 208, 112, 0.018),
+            0 0 0 66px rgba(240, 208, 112, 0.008),
+            0 0 60px  rgba(240, 208, 112, 0.06);
     pointer-events: none;
 }
 
@@ -149,7 +160,11 @@ html, body {
     position: absolute;
     bottom: 0; left: 0; right: 0;
     height: 120px;
-    background: radial-gradient(ellipse at 50% 100%, rgba(240, 208, 112, 0.08) 0%, transparent 70%);
+    background: radial-gradient(
+            ellipse at 50% 100%,
+            rgba(240, 208, 112, 0.08) 0%,
+            transparent 70%
+    );
     pointer-events: none;
 }
 
@@ -168,23 +183,31 @@ html, body {
     height: 38px;
     border-radius: 50%;
     flex-shrink: 0;
-    background: radial-gradient(circle at 30% 27%, #ffffff            0%, var(--gold-warm)   18%, var(--gold)        38%, var(--teal-deep)   65%, var(--bg-deep)     100%);
-    box-shadow: 0 0 18px var(--gold-glow), 0 0 38px rgba(240, 208, 112, 0.22), 0 0 70px rgba(240, 208, 112, 0.10), inset 0 1px 3px rgba(255, 255, 255, 0.35);
+    background: radial-gradient(
+            circle at 30% 27%,
+            #ffffff          0%,
+            var(--gold-warm) 18%,
+            var(--gold)      38%,
+            var(--teal-deep) 65%,
+            var(--bg-deep)   100%
+    );
+    box-shadow:
+            0 0 18px var(--gold-glow),
+            0 0 38px rgba(240, 208, 112, 0.22),
+            0 0 70px rgba(240, 208, 112, 0.10),
+            inset 0 1px 3px rgba(255, 255, 255, 0.35);
     animation: orb-pulse 5s ease-in-out infinite;
 }
 
-@keyframes orb-pulse
-{
-    0%, 100%
-    {
+@keyframes orb-pulse {
+    0%, 100% {
         box-shadow:
                 0 0 18px var(--gold-glow),
                 0 0 38px rgba(240, 208, 112, 0.22),
                 0 0 70px rgba(240, 208, 112, 0.10),
                 inset 0 1px 3px rgba(255, 255, 255, 0.35);
     }
-    50%
-    {
+    50% {
         box-shadow:
                 0 0 28px var(--gold-glow-hard),
                 0 0 56px rgba(240, 208, 112, 0.35),
@@ -273,10 +296,17 @@ html, body {
 
 /* Active: gold panel */
 .nav-item.active {
-    background: linear-gradient(135deg, rgba(240, 208, 112, 0.16) 0%, rgba(240, 208, 112, 0.07) 60%, rgba(77, 184, 160, 0.06) 100%);
+    background: linear-gradient(
+            135deg,
+            rgba(240, 208, 112, 0.16) 0%,
+            rgba(240, 208, 112, 0.07) 60%,
+            rgba(77,  184, 160, 0.06) 100%
+    );
     color: var(--gold-bright);
     border-color: rgba(240, 208, 112, 0.42);
-    box-shadow: 0 4px 20px rgba(240, 208, 112, 0.15), inset 0 1px rgba(255, 255, 255, 0.06);
+    box-shadow:
+            0 4px 20px rgba(240, 208, 112, 0.15),
+            inset 0 1px rgba(255, 255, 255, 0.06);
     font-weight: 500;
 }
 
@@ -328,7 +358,15 @@ html, body {
     position: absolute;
     bottom: 0; left: 0; right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent   0%, var(--gold)   20%, var(--gold-bright) 45%, var(--teal-bright) 65%, var(--frost)   85%, transparent  100%);
+    background: linear-gradient(
+            90deg,
+            transparent          0%,
+            var(--gold)         20%,
+            var(--gold-bright)  45%,
+            var(--teal-bright)  65%,
+            var(--frost)        85%,
+            transparent        100%
+    );
     opacity: 0.65;
 }
 
@@ -456,16 +494,18 @@ html, body {
 }
 
 /* ============================================================
-   MAIN CONTENT — void with gold nebula centre
+   MAIN CONTENT — semi-transparent so canvas bleeds through
 ============================================================ */
-.main {
+.main
+{
     grid-area: main;
     overflow: auto;
     padding: 26px;
+
     background:
-            radial-gradient(ellipse at 50% 0%, rgba(240, 208, 112, 0.07) 0%, transparent 55%),
-            radial-gradient(ellipse at 50% 100%, rgba(77, 184, 160, 0.04) 0%, transparent 60%),
-            linear-gradient(160deg, #020408 0%, #030610 50%, #020408 100%);
+            radial-gradient(ellipse at 50% 0%,   rgba(240, 208, 112, 0.07) 0%, transparent 55%),
+            radial-gradient(ellipse at 50% 100%, rgba(77,  184, 160, 0.04) 0%, transparent 60%),
+            linear-gradient(160deg, rgba(2,  4,  8, 0.82) 0%, rgba(3,  6, 16, 0.82) 50%, rgba(2,  4,  8, 0.82) 100%);
 }
 
 .section { display: none; animation: fade-in 0.28s ease; }
@@ -480,12 +520,12 @@ html, body {
    GLASS CARD — gold-white nebula glow
 ============================================================ */
 .glass-card {
-    background: linear-gradient(145deg, rgba(240, 208, 112, 0.10) 0%, rgba(253, 246, 232, 0.07) 35%, rgba(7, 13, 26, 0.85)     100%);
+    background: linear-gradient(145deg, rgba(240, 208, 112, 0.10) 0%, rgba(253, 246, 232, 0.07) 35%, rgba(7,  13,  26, 0.85)  100%);
     border: 1px solid var(--border);
     border-radius: 16px;
     padding: 22px 24px;
     backdrop-filter: blur(24px);
-    box-shadow: 0 10px 48px rgba(0, 0, 0, 0.75), 0 0 30px rgba(240, 208, 112, 0.08), inset 0 1px rgba(253, 240, 200, 0.12);
+    box-shadow: 0 10px 48px rgba(0, 0, 0, 0.75), 0 0   30px rgba(240, 208, 112, 0.08), inset 0 1px rgba(253, 240, 200, 0.12);
     margin-bottom: 18px;
     position: relative;
     overflow: hidden;
@@ -518,7 +558,7 @@ html, body {
     content: "";
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, var(--gold-bright) 0%, var(--gold)        40%, var(--teal)        80%, transparent       100%);
+    background: linear-gradient(90deg, var(--gold-bright) 0%, var(--gold)   40%, var(--teal) 80%, transparent  100%);
     opacity: 0.30;
     margin-left: 10px;
 }
@@ -561,7 +601,7 @@ html, body {
     border-color: rgba(240, 208, 112, 0.50);
     background: linear-gradient(135deg, rgba(240, 208, 112, 0.13) 0%, rgba(253, 246, 232, 0.08) 100%);
     transform: translateX(4px);
-    box-shadow: 0 4px 24px rgba(240, 208, 112, 0.15), 0 0 40px rgba(240, 208, 112, 0.06);
+    box-shadow: 0 4px 24px rgba(240, 208, 112, 0.15), 0 0   40px rgba(240, 208, 112, 0.06);
 }
 
 .news-card:hover::before { opacity: 1; }
@@ -704,8 +744,7 @@ html, body {
     transition: all 0.22s;
 }
 
-.search-btn:hover
-{
+.search-btn:hover {
     box-shadow: 0 6px 32px var(--gold-glow-hard);
     filter: brightness(1.08);
 }
@@ -713,8 +752,7 @@ html, body {
 /* ============================================================
    SETTINGS
 ============================================================ */
-.setting-row
-{
+.setting-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -724,16 +762,14 @@ html, body {
 
 .setting-row:last-child { border-bottom: none; }
 
-.setting-label
-{
+.setting-label {
     font-family: var(--font-body);
     font-size: 22px;
     font-weight: 500;
     color: var(--silver);
 }
 
-.setting-desc
-{
+.setting-desc {
     font-family: var(--font-mono);
     font-size: 16px;
     color: var(--text-dim);
@@ -747,7 +783,7 @@ html, body {
     font-family: var(--font-title);
     font-size: 15px;
     letter-spacing: 0.08em;
-    background: linear-gradient(135deg, rgba(240, 208, 112, 0.14), rgba(77, 184, 160, 0.10));
+    background: linear-gradient(135deg, rgba(240, 208, 112, 0.14), rgba(77,  184, 160, 0.10));
     border: 1px solid rgba(240, 208, 112, 0.45);
     color: var(--gold-bright);
     box-shadow: 0 0 10px rgba(240, 208, 112, 0.15);
@@ -759,12 +795,7 @@ html, body {
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-    background: linear-gradient(
-            to bottom,
-            var(--gold-bright),
-            var(--gold),
-            var(--teal)
-    );
+    background: linear-gradient(to bottom, var(--gold-bright), var(--gold), var(--teal));
     border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover { filter: brightness(1.35); }
