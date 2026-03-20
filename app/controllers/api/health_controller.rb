@@ -2,7 +2,7 @@ module Api
   class HealthController < ApplicationController
     def index
       render json: {
-        status: 'ok',
+        status: "ok",
         rails_version: Rails.version,
         ruby_version: RUBY_VERSION,
         time: Time.current
