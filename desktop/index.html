@@ -1,92 +1,158 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Frieren Archive</title>
-  <style>
-    * { box-sizing: border-box; }
-    body
-    {
-      margin: 0;
-      padding: 24px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #f0f4ff 0%, #e8f0ff 100%);
-      min-height: 100vh;
-    }
-    h1
-    {
-      color: #1e40af;
-      font-size: 2.5rem;
-      margin-bottom: 32px;
-      text-align: center;
-    }
-    .controls
-    {
-      display: flex;
-      gap: 16px;
-      justify-content: center;
-      margin-bottom: 48px;
-    }
-    button
-    {
-      padding: 12px 24px;
-      font-size: 16px;
-      border: none;
-      border-radius: 8px;
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-      color: white;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    button:hover
-    {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
-    }
-    #output
-    {
-      background: white;
-      border-radius: 12px;
-      padding: 24px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      font-family: 'SF Mono', monospace;
-      font-size: 14px;
-      line-height: 1.6;
-      max-height: 60vh;
-      overflow: auto;
-      white-space: pre-wrap;
-    }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="renderer/styles/main.css">
 </head>
 <body>
-<h1>🧙‍♀️ Frieren Archive</h1>
 
-<div class="controls">
-  <button onclick="testHealth()">Check API Health</button>
-  <button onclick="testNews()">Load News</button>
+<canvas id="snow-canvas"></canvas>
+
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-orb"></div>
+      <div class="brand-text">
+        <strong>Frieren Archive</strong>
+        <span>Grimoire of Anime</span>
+      </div>
+    </div>
+    <div class="nav-section-label">Navigate</div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" data-section="news">
+        <div class="nav-icon">📜</div>
+        <span>News</span>
+      </div>
+      <div class="nav-item" data-section="mal">
+        <div class="nav-icon">📖</div>
+        <span>MyAnimeList</span>
+      </div>
+      <div class="nav-item" data-section="search">
+        <div class="nav-icon">🔮</div>
+        <span>Quick Search</span>
+      </div>
+      <div class="nav-item" data-section="favorites">
+        <div class="nav-icon">⭐</div>
+        <span>Favourites</span>
+      </div>
+    </nav>
+    <div class="nav-section-label">System</div>
+    <nav class="sidebar-nav" style="flex:0;">
+      <div class="nav-item" data-section="settings">
+        <div class="nav-icon">⚙️</div>
+        <span>Settings</span>
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      Frieren Archive · v0.1.0<br>
+      Rails 8.1.2 · Electron 41
+    </div>
+  </aside>
+
+  <header class="app-header">
+    <div class="header-breadcrumb">
+      Frieren Archive &rsaquo; <span class="page-name" id="page-name">News</span>
+    </div>
+    <div class="header-search">
+      <span class="header-search-icon">🔮</span>
+      <input type="text" id="global-search" placeholder="Search the world… (DuckDuckGo)">
+    </div>
+    <div class="header-actions">
+      <div class="status-pill">
+        <div class="status-dot" id="api-dot"></div>
+        <span id="api-status">Rails API</span>
+      </div>
+      <button class="header-btn" id="btn-health">Check Health</button>
+      <button class="header-btn primary" id="btn-news">Load News</button>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <div class="section visible" id="section-news">
+      <div class="glass-card">
+        <div class="card-heading">📜 Latest Anime News</div>
+        <div class="card-body">News fed from Rails API · Jikan &amp; ANN connected next.</div>
+      </div>
+      <div class="news-list" id="news-list">
+        <div class="empty-state">
+          <div class="empty-icon">🌿</div>
+          <p>No news fetched yet.<br>Click <strong>Load News</strong> to begin.</p>
+          <em>"Even a thousand years of travelling doesn't erase the joy of discovering something new."</em>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" id="section-mal">
+      <div class="glass-card">
+        <div class="card-heading">📖 MyAnimeList</div>
+        <div class="card-body">Search anime powered by Jikan API. OAuth coming soon.</div>
+      </div>
+      <div class="empty-state">
+        <div class="empty-icon">📖</div>
+        <p>MyAnimeList search coming next.</p>
+        <em>"Knowledge gained through long years of study is never truly lost."</em>
+      </div>
+    </div>
+
+    <div class="section" id="section-search">
+      <div class="glass-card">
+        <div class="card-heading">🔮 Quick Search · DuckDuckGo</div>
+        <div class="card-body">Instant answers via Rails /api/search/web.</div>
+      </div>
+      <div class="search-bar-large">
+        <span class="search-ico">🔮</span>
+        <input type="text" id="ddg-input" placeholder="Ask anything…">
+      </div>
+      <button class="search-btn" id="ddg-btn">Search the World</button>
+      <div style="margin-top:18px;" id="ddg-output"></div>
+    </div>
+
+    <div class="section" id="section-favorites">
+      <div class="glass-card">
+        <div class="card-heading">⭐ Favourites</div>
+        <div class="card-body">Pinned articles and saved anime.</div>
+      </div>
+      <div class="empty-state">
+        <div class="empty-icon">✨</div>
+        <p>Nothing saved yet.</p>
+        <em>"Some things are worth keeping, even after all this time."</em>
+      </div>
+    </div>
+
+    <div class="section" id="section-settings">
+      <div class="glass-card">
+        <div class="card-heading">⚙️ Settings</div>
+        <div class="card-body">
+          <div class="setting-row">
+            <div><div class="setting-label">Rails API</div><div class="setting-desc">http://localhost:3000</div></div>
+            <span class="badge" id="settings-api-badge">Connected</span>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Theme</div><div class="setting-desc">Frieren Dark (Grimoire)</div></div>
+            <span class="badge">Active</span>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Snow particles</div><div class="setting-desc">Ambient background effect</div></div>
+            <span class="badge">On</span>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">Version</div><div class="setting-desc">Frieren Archive v0.1.0 · prototype</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
 </div>
 
-<div id="output">Click a button to test Rails API connection...</div>
-
-<script>
-  async function testHealth() {
-    try {
-      const data = await window.frieren.getHealth()
-      document.getElementById('output').textContent = JSON.stringify(data, null, 2)
-    } catch (error) {
-      document.getElementById('output').textContent = `Error: ${error.message}\n\nMake sure Rails server is running on localhost:3000`
-    }
-  }
-
-  async function testNews()
-  {
-    try {
-      const data = await window.frieren.getNews()
-      document.getElementById('output').textContent = JSON.stringify(data, null, 2)
-    } catch (error) {
-      document.getElementById('output').textContent = `Error: ${error.message}\n\nMake sure Rails server is running on localhost:3000`
-    }
-  }
-</script>
+<script src="renderer/js/snow.js"></script>
+<script src="renderer/js/nav.js"></script>
+<script src="renderer/js/app.js"></script>
 </body>
 </html>
+
