@@ -6,48 +6,32 @@ on:
     branches: [ master ]
 
 jobs:
-  scan_ruby:
+  security:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.4'  # Match your local Ruby 3.4.7
+          ruby-version: '3.4'
           bundler-cache: true
-
-      - name: Run Brakeman
+      - name: Brakeman scan
         run: bundle exec brakeman --no-pager
-
-      - name: Run bundler-audit
+      - name: Bundler audit
         run: bundle exec bundler-audit check --update
 
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.4.7'
+          ruby-version: '3.4'
           bundler-cache: true
-
-      - name: Run RuboCop
+      - name: RuboCop
         run: bundle exec rubocop -f github
 
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.4'
-          bundler-cache: true
-
-      - name: Run tests
-        env:
-          RAILS_ENV: test
-        run: |
-          bundle exec rails db:test:prepare
-          bundle exec rails test
+      - uses
