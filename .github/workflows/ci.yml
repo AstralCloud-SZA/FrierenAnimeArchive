@@ -3,35 +3,127 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [ master ]
+    branches: [master]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  # ─────────────────────────────────────────────
+  # 1. SECURITY — Brakeman + Bundler Audit
+  # ─────────────────────────────────────────────
   security:
+    name: Security Audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.4'
           bundler-cache: true
-      - name: Brakeman scan
-        run: bundle exec brakeman --no-pager
-      - name: Bundler audit
-        run: bundle exec bundler-audit check --update
 
+      - name: Brakeman static analysis
+        run: bundle exec brakeman --no-pager --format github
+
+      - name: Bundler Audit (CVE check)
+        run: |
+          bundle exec bundler-audit --update
+          bundle exec bundler-audit check
+
+  # ─────────────────────────────────────────────
+  # 2. LINT — RuboCop
+  # ─────────────────────────────────────────────
   lint:
+    name: RuboCop Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.4'
           bundler-cache: true
-      - name: RuboCop
-        run: bundle exec rubocop -f github
 
+      - name: RuboCop
+        run: bundle exec rubocop --format github --parallel
+
+  # ─────────────────────────────────────────────
+  # 3. TEST — Rails test suite with PostgreSQL
+  # ─────────────────────────────────────────────
   test:
+    name: Rails Tests
+    runs-on: ubuntu-latest
+    needs: [security, lint]
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: frieren_archive_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/frieren_archive_test
+      RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+      CI: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+
+      - name: Install system dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -yqq libpq-dev
+
+      - name: Set up database
+        run: |
+          bundle exec rails db:create
+          bundle exec rails db:schema:load
+
+      - name: Run Rails tests
+        run: bundle exec rails test --format progress
+
+      - name: Upload test results (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: log/test.log
+          retention-days: 7
+
+  # ─────────────────────────────────────────────
+  # 4. ELECTRON — Node/JS dependency audit
+  # ─────────────────────────────────────────────
+  electron-audit:
+    name: Electron JS Audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Audit JS dependencies
+        run: npm audit --audit-level=high
+
+      - name: Check Electron build
+        run: npx electron --version
