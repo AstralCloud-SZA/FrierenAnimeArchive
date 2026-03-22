@@ -3,9 +3,9 @@ module Api
   class HealthController < ApplicationController
     def index
       render json: {
-        status: 'ok',
+        status: "ok",
         timestamp: Time.current.iso8601,
-        version: 'v0.1.0',
+        version: "v0.1.0",
         rails: Rails.version,
         env: Rails.env,
         apis: {

@@ -7,11 +7,11 @@ class ApplicationController < ActionController::API
   private
 
   def not_found
-    render json: { error: 'Not found' }, status: :not_found
+    render json: { error: "Not found" }, status: :not_found
   end
 
   def external_service_error(error)
     Rails.logger.error "External API error: #{error.message}"
-    render json: { error: 'External service unavailable' }, status: :service_unavailable
+    render json: { error: "External service unavailable" }, status: :service_unavailable
   end
 end

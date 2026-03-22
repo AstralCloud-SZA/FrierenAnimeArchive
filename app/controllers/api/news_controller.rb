@@ -1,14 +1,13 @@
 # app/controllers/api/news_controller.rb
 module Api
   class NewsController < ApplicationController
-
     def index
       # Auto-refresh from ANN RSS if archive is empty
       NewsFetcher.refresh if Article.count < 5
 
       articles = Article.order(published_at: :desc).limit(20)
       render json: articles.as_json(
-        only: [:id, :title, :summary, :source_name, :url, :image_url, :published_at]
+        only: [ :id, :title, :summary, :source_name, :url, :image_url, :published_at ]
       )
     rescue => e
       Rails.logger.error "News index error: #{e.message}"
@@ -18,10 +17,10 @@ module Api
     def show
       article = Article.find(params[:id])
       render json: article.as_json(
-        only: [:id, :title, :summary, :source_name, :url, :image_url, :published_at]
+        only: [ :id, :title, :summary, :source_name, :url, :image_url, :published_at ]
       )
     rescue ActiveRecord::RecordNotFound
-      render json: { error: 'Article not found' }, status: :not_found
+      render json: { error: "Article not found" }, status: :not_found
     rescue => e
       Rails.logger.error "News show error: #{e.message}"
       render json: { error: e.message }, status: :internal_server_error
@@ -61,6 +60,5 @@ module Api
         }
       ]
     end
-
   end
 end

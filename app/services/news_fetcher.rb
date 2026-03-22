@@ -1,11 +1,11 @@
 # app/services/news_fetcher.rb
-require 'feedjira'
-require 'net/http'
-require 'uri'
-require 'openssl'
+require "feedjira"
+require "net/http"
+require "uri"
+require "openssl"
 
 class NewsFetcher
-  ANN_RSS = 'https://www.animenewsnetwork.com/all/rss.xml?ann-edition=us'.freeze
+  ANN_RSS = "https://www.animenewsnetwork.com/all/rss.xml?ann-edition=us".freeze
 
   def self.refresh
     Rails.logger.info "🌿 NewsFetcher: starting refresh..."
@@ -37,8 +37,8 @@ class NewsFetcher
 
       Article.find_or_create_by(url: entry.url.strip) do |article|
         article.title        = entry.title.truncate(255)
-        article.summary      = clean_html(entry.summary || entry.content || '')
-        article.source_name  = 'ANN'
+        article.summary      = clean_html(entry.summary || entry.content || "")
+        article.source_name  = "ANN"
         article.image_url    = entry.try(:image) || entry.try(:enclosure)&.url
         article.published_at = entry.published || Time.current
         article.featured     = false
@@ -59,7 +59,7 @@ class NewsFetcher
     uri  = URI.parse(url)
     http = Net::HTTP.new(uri.host, uri.port)
 
-    if uri.scheme == 'https'
+    if uri.scheme == "https"
       http.use_ssl     = true
       http.verify_mode = OpenSSL::SSL::VERIFY_NONE   # Windows fix
     end
@@ -68,7 +68,7 @@ class NewsFetcher
     http.read_timeout = 20
 
     request = Net::HTTP::Get.new(uri.request_uri)
-    request['User-Agent'] = 'FrierenArchive/0.1.0 RSS Reader'
+    request["User-Agent"] = "FrierenArchive/0.1.0 RSS Reader"
 
     response = http.request(request)
 
@@ -76,7 +76,7 @@ class NewsFetcher
     when Net::HTTPSuccess
       response.body
     when Net::HTTPRedirection
-      new_url = response['location']
+      new_url = response["location"]
       Rails.logger.info "ANN RSS redirected → #{new_url}"
       fetch_with_redirects(new_url, limit - 1)
     else
@@ -91,7 +91,7 @@ class NewsFetcher
   def self.clean_html(html)
     ActionController::Base.helpers
                           .strip_tags(html)
-                          .gsub(/\s+/, ' ')
+                          .gsub(/\s+/, " ")
                           .strip
                           .truncate(300)
   rescue

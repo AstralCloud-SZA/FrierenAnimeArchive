@@ -1,9 +1,9 @@
 # app/services/duck_duck_go_client.rb
-require 'faraday'
+require "faraday"
 
 class DuckDuckGoClient
-  BASE_URL = 'https://api.duckduckgo.com'
-  FORMAT   = 'json'
+  BASE_URL = "https://api.duckduckgo.com"
+  FORMAT   = "json"
 
   def self.search(query)
     params = {

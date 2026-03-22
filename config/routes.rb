@@ -4,27 +4,27 @@ Rails.application.routes.draw do
   # API namespace
   namespace :api do
     # Health check
-    get 'health', to: 'health#index'
+    get "health", to: "health#index"
 
     # News
-    resources :news, only: [:index, :show]
+    resources :news, only: [ :index, :show ]
 
     # Anime (Jikan proxy)
     namespace :anime do
-      get 'search', to: 'search#index'
-      get ':id',    to: 'show#show'
+      get "search", to: "search#index"
+      get ":id",    to: "show#show"
     end
 
     # DuckDuckGo Instant Answer
     namespace :search do
-      get 'web', to: 'web#index'
+      get "web", to: "web#index"
     end
 
     # Future: MAL OAuth
     namespace :mal do
-      get 'connect', to: 'oauth#connect'
-      get 'callback', to: 'oauth#callback'
-      get 'me',       to: 'users#me'
+      get "connect", to: "oauth#connect"
+      get "callback", to: "oauth#callback"
+      get "me",       to: "users#me"
     end
   end
 end

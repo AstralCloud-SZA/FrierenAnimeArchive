@@ -14,13 +14,13 @@
 #  due to missing CA cert bundle. Remove for production.
 # ═══════════════════════════════════════════════════════════
 
-require 'faraday'
-require 'faraday/retry'
-require 'cgi'
+require "faraday"
+require "faraday/retry"
+require "cgi"
 
 class JikanClient
-  BASE_URL   = 'https://api.jikan.moe/v4'.freeze
-  USER_AGENT = 'FrierenArchive/0.1.0'.freeze
+  BASE_URL   = "https://api.jikan.moe/v4".freeze
+  USER_AGENT = "FrierenArchive/0.1.0".freeze
 
   # Reset on class reload (important in Rails dev mode)
   @connection = nil
@@ -33,8 +33,8 @@ class JikanClient
   #   - 15s timeout to handle slow Jikan responses
   def self.connection
     @connection ||= Faraday.new do |f|
-      f.headers['User-Agent'] = USER_AGENT
-      f.headers['Accept']     = 'application/json'
+      f.headers["User-Agent"] = USER_AGENT
+      f.headers["Accept"]     = "application/json"
 
       # Windows dev SSL fix — remove in production
       f.ssl[:verify] = false
@@ -48,7 +48,7 @@ class JikanClient
         interval:            1.0,
         interval_randomness: 0.5,
         backoff_factor:      2,
-        retry_statuses:      [429, 500, 503]
+        retry_statuses:      [ 429, 500, 503 ]
       }
     end
   end
@@ -89,7 +89,7 @@ class JikanClient
       return []
     end
 
-    data = JSON.parse(resp.body).dig('data') || []
+    data = JSON.parse(resp.body).dig("data") || []
     Rails.logger.info "Jikan search '#{query}': #{data.size} results (sfw: #{sfw})"
     data
   rescue => e
@@ -119,7 +119,7 @@ class JikanClient
       return {}
     end
 
-    JSON.parse(resp.body).dig('data') || {}
+    JSON.parse(resp.body).dig("data") || {}
   rescue => e
     Rails.logger.error "Jikan anime_details failed: #{e.message}"
     {}
@@ -145,7 +145,7 @@ class JikanClient
       return []
     end
 
-    JSON.parse(resp.body).dig('data') || []
+    JSON.parse(resp.body).dig("data") || []
   rescue => e
     Rails.logger.error "Jikan top_anime failed: #{e.message}"
     []
@@ -172,7 +172,7 @@ class JikanClient
       return []
     end
 
-    JSON.parse(resp.body).dig('data') || []
+    JSON.parse(resp.body).dig("data") || []
   rescue => e
     Rails.logger.error "Jikan seasonal failed: #{e.message}"
     []
@@ -185,10 +185,10 @@ class JikanClient
   # Winter: Jan–Mar | Spring: Apr–Jun | Summer: Jul–Sep | Fall: Oct–Dec
   def self.current_season
     case Time.current.month
-    when 1..3  then 'winter'
-    when 4..6  then 'spring'
-    when 7..9  then 'summer'
-    else            'fall'
+    when 1..3  then "winter"
+    when 4..6  then "spring"
+    when 7..9  then "summer"
+    else            "fall"
     end
   end
 end
