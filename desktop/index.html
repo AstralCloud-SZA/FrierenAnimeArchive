@@ -5,21 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Frieren Archive</title>
 
-  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="renderer/styles/main.css">
 </head>
 <body>
 
-<!-- Magic canvas — Frieren's Blumen + runes + sparkles -->
 <canvas id="snow-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;"></canvas>
 
 <div class="app-shell">
 
-  <!-- Sidebar -->
+  <!-- ═══ SIDEBAR ═══ -->
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="brand-orb"></div>
@@ -63,7 +60,7 @@
     </div>
   </aside>
 
-  <!-- Header -->
+  <!-- ═══ HEADER ═══ -->
   <header class="app-header">
     <div class="header-breadcrumb">
       Frieren Archive &rsaquo;
@@ -72,28 +69,28 @@
 
     <div class="header-search">
       <span class="header-search-icon">🔮</span>
-      <input type="text" id="global-search" placeholder="Search the world… (DuckDuckGo)">
+      <input type="text" id="global-search" placeholder="Search the world… (DuckDuckGo) · Ctrl+K">
     </div>
 
     <div class="header-actions">
       <div class="status-pill">
         <div class="status-dot" id="api-dot"></div>
-        <span id="api-status">Rails API</span>
+        <span id="api-status">Connecting…</span>
       </div>
       <button class="header-btn" id="btn-health">Check Health</button>
       <button class="header-btn primary" id="btn-news">Load News</button>
     </div>
   </header>
 
-  <!-- Main content -->
+  <!-- ═══ MAIN ═══ -->
   <main class="main">
 
-    <!-- News -->
+    <!-- ── NEWS ── -->
     <div class="section visible" id="section-news">
       <div class="glass-card">
         <div class="card-heading">📜 Latest Anime News</div>
         <div class="card-body">
-          News fed from the Rails API · Jikan &amp; ANN sources connect next.
+          Live from ANN via Rails API · Click <strong>Load News</strong> to fetch.
         </div>
       </div>
       <div class="news-list" id="news-list">
@@ -105,15 +102,18 @@
       </div>
     </div>
 
-    <!-- MyAnimeList -->
+    <!-- ── MYANIME LIST ── -->
     <div class="section" id="section-mal">
       <div class="glass-card">
-        <div class="card-heading">📖 MyAnimeList</div>
-        <div class="card-body">Search anime powered by Jikan API. OAuth coming soon.</div>
+        <div class="card-heading">📖 MyAnimeList · Jikan Search</div>
+        <div class="card-body">
+          Search any anime title via the Jikan v4 API · click a result to view details.
+          SFW filter toggled in <strong>Settings</strong>.
+        </div>
       </div>
       <div class="search-bar-large">
         <span class="search-ico">📖</span>
-        <input type="text" id="mal-input" placeholder="Search anime titles…">
+        <input type="text" id="mal-input" placeholder="Search anime titles… e.g. Frieren, Bleach, Berserk">
       </div>
       <button class="search-btn" id="mal-btn">Search Anime</button>
       <div id="mal-output" style="margin-top:20px;"></div>
@@ -124,25 +124,47 @@
       </div>
     </div>
 
-    <!-- Quick Search (DuckDuckGo) -->
+    <!-- ── QUICK SEARCH (DuckDuckGo in-app webview) ── -->
     <div class="section" id="section-search">
       <div class="glass-card">
         <div class="card-heading">🔮 Quick Search · DuckDuckGo</div>
-        <div class="card-body">Instant answers proxied through Rails <code>/api/search/web</code>.</div>
+        <div class="card-body">
+          Full in-app browser · search anything freely · no restrictions.
+        </div>
       </div>
-      <div class="search-bar-large">
-        <span class="search-ico">🔮</span>
-        <input type="text" id="ddg-input" placeholder="Ask anything…">
+
+      <!-- Browser toolbar -->
+      <div class="ddg-toolbar">
+        <div class="search-bar-large" style="flex:1;margin:0;">
+          <span class="search-ico">🔮</span>
+          <input type="text" id="ddg-input" placeholder="Ask anything… e.g. Frieren season 2 release date">
+        </div>
+        <button class="search-btn" id="ddg-btn" style="margin:0;white-space:nowrap;">Search</button>
+        <button class="header-btn" id="ddg-back" title="Back">←</button>
+        <button class="header-btn" id="ddg-forward" title="Forward">→</button>
+        <button class="header-btn" id="ddg-reload" title="Reload">↺</button>
       </div>
-      <button class="search-btn" id="ddg-btn">Search the World</button>
-      <div id="ddg-output" style="margin-top:20px;"></div>
+
+      <!-- In-app DuckDuckGo browser — unrestricted -->
+      <webview
+              id="ddg-webview"
+              src="https://duckduckgo.com/?kae=d&k1=-1"
+              style="width:100%;
+               height:calc(100vh - 280px);
+               min-height:420px;
+               margin-top:12px;
+               border:1px solid var(--border);
+               border-radius:12px;
+               background:#020408;"
+              allowpopups>
+      </webview>
     </div>
 
-    <!-- Favourites -->
+    <!-- ── FAVOURITES ── -->
     <div class="section" id="section-favorites">
       <div class="glass-card">
         <div class="card-heading">⭐ Favourites</div>
-        <div class="card-body">Pinned articles and saved anime.</div>
+        <div class="card-body">Pinned articles and saved anime · coming soon.</div>
       </div>
       <div class="empty-state">
         <div class="empty-icon">✨</div>
@@ -151,11 +173,12 @@
       </div>
     </div>
 
-    <!-- Settings -->
+    <!-- ── SETTINGS ── -->
     <div class="section" id="section-settings">
       <div class="glass-card">
         <div class="card-heading">⚙️ Settings</div>
         <div class="card-body">
+
           <div class="setting-row">
             <div>
               <div class="setting-label">Rails API</div>
@@ -163,6 +186,18 @@
             </div>
             <span class="badge" id="settings-api-badge">Connected</span>
           </div>
+
+          <div class="setting-row">
+            <div>
+              <div class="setting-label">SFW Filter</div>
+              <div class="setting-desc">Hide adult content from MyAnimeList search results</div>
+            </div>
+            <label class="toggle" title="Toggle safe-for-work filter">
+              <input type="checkbox" id="sfw-toggle">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
           <div class="setting-row">
             <div>
               <div class="setting-label">Theme</div>
@@ -170,13 +205,15 @@
             </div>
             <span class="badge">Active</span>
           </div>
+
           <div class="setting-row">
             <div>
               <div class="setting-label">Magic Effects</div>
-              <div class="setting-desc">Blumen petals + runes + sparkles</div>
+              <div class="setting-desc">Blumen petals · rune rings · sparkles</div>
             </div>
             <span class="badge">Active</span>
           </div>
+
           <div class="setting-row">
             <div>
               <div class="setting-label">MyAnimeList OAuth</div>
@@ -184,12 +221,14 @@
             </div>
             <span class="badge">Pending</span>
           </div>
+
           <div class="setting-row">
             <div>
               <div class="setting-label">Version</div>
               <div class="setting-desc">Frieren Archive v0.1.0 · prototype</div>
             </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -197,7 +236,6 @@
   </main>
 </div>
 
-<!-- Scripts — load in order -->
 <script src="renderer/js/snow.js"></script>
 <script src="renderer/js/nav.js"></script>
 <script src="renderer/js/app.js"></script>

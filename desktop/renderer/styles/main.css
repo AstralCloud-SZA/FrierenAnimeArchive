@@ -380,7 +380,8 @@ html, body
     box-shadow: 0 0 20px var(--gold-glow);
 }
 
-.header-search-icon {
+.header-search-icon
+{
     position: absolute;
     left: 12px; top: 50%;
     transform: translateY(-50%);
@@ -389,13 +390,15 @@ html, body
     pointer-events: none;
 }
 
-.header-actions {
+.header-actions
+{
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
-.status-pill {
+.status-pill
+{
     display: flex;
     align-items: center;
     gap: 6px;
@@ -409,7 +412,8 @@ html, body
     white-space: nowrap;
 }
 
-.status-dot {
+.status-dot
+{
     width: 6px;
     height: 6px;
     border-radius: 50%;
@@ -419,13 +423,15 @@ html, body
     animation: blink 3s ease-in-out infinite;
 }
 
-@keyframes blink {
+@keyframes blink
+{
     0%, 100% { opacity: 1; }
     50%       { opacity: 0.20; }
 }
 
 /* Default button */
-.header-btn {
+.header-btn
+{
     padding: 7px 18px;
     border-radius: 999px;
     border: 1px solid var(--border);
@@ -439,7 +445,8 @@ html, body
     white-space: nowrap;
 }
 
-.header-btn:hover {
+.header-btn:hover
+{
     border-color: var(--border-bright);
     background: rgba(240, 208, 112, 0.12);
     color: var(--gold-bright);
@@ -447,7 +454,8 @@ html, body
 }
 
 /* Primary — gold staff */
-.header-btn.primary {
+.header-btn.primary
+{
     background: linear-gradient(135deg, var(--gold), var(--gold-bright));
     border-color: var(--gold-warm);
     color: #180e00;
@@ -455,7 +463,8 @@ html, body
     box-shadow: 0 4px 20px var(--gold-glow);
 }
 
-.header-btn.primary:hover {
+.header-btn.primary:hover
+{
     box-shadow: 0 6px 30px var(--gold-glow-hard);
     filter: brightness(1.08);
 }
@@ -463,7 +472,8 @@ html, body
 /* ============================================================
    MAIN CONTENT — semi-transparent so canvas bleeds through
 ============================================================ */
-.main {
+.main
+{
     grid-area: main;
     overflow: auto;
     padding: 26px;
@@ -477,10 +487,35 @@ html, body
 .section { display: none; animation: fade-in 0.28s ease; }
 .section.visible { display: block; }
 
-@keyframes fade-in {
+@keyframes fade-in
+{
     from { opacity: 0; transform: translateY(7px); }
     to   { opacity: 1; transform: translateY(0); }
 }
+
+/* Anime detail rows */
+.detail-row
+{
+    display: flex;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(240, 208, 112, 0.08);
+    font-family: var(--font-body);
+    font-size: 18px;
+}
+
+.detail-label
+{
+    color: var(--gold);
+    font-family: var(--font-title);
+    font-size: 14px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    min-width: 90px;
+    flex-shrink: 0;
+    padding-top: 2px;
+}
+
 
 /* ============================================================
    GLASS CARD — gold-white nebula glow
@@ -755,6 +790,55 @@ html, body
     color: var(--gold-bright);
     box-shadow: 0 0 10px rgba(240, 208, 112, 0.15);
 }
+
+/* ── Settings Toggle ─────────────────────────────────── */
+.toggle {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+
+.toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: rgba(240, 208, 112, 0.15);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: 0.25s ease;
+}
+
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    left: 3px;
+    top: 3px;
+    background: var(--silver-dim);
+    border-radius: 50%;
+    transition: 0.25s ease;
+}
+
+.toggle input:checked + .toggle-slider {
+    background: linear-gradient(135deg, var(--gold), var(--teal));
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 12px var(--gold-glow);
+}
+
+.toggle input:checked + .toggle-slider::before {
+    transform: translateX(20px);
+    background: #fff;
+}
+
 
 /* ============================================================
    SCROLLBAR — gold to teal

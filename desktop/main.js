@@ -31,13 +31,15 @@ function createWindow ()
         minHeight: 600,
         backgroundColor: '#020408',    // Frieren void black — no white flash
         titleBarStyle: 'default',
-        webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
-            contextIsolation: true,
-            nodeIntegration: false,
-            sandbox: false               // needed for fetch in preload
-        }
-    })
+            webPreferences: {
+                preload:          path.join(__dirname, 'preload.js'),
+                contextIsolation: true,
+                nodeIntegration:  false,
+                sandbox:          false,
+                webviewTag:       true    // ← enables <webview>
+            }
+
+        })
 
     mainWindow.loadFile('index.html')
 

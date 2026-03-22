@@ -1,11 +1,24 @@
 /* ============================================================
-   app.js — Main application logic
+   renderer/js/app.js — Main application logic
    Connects UI to Rails API via window.api (preload bridge)
+
+   Sections:
+     1.  Constants + DOM refs
+     2.  UI helpers (cards, states, escaping)
+     3.  API status
+     4.  News (load + health)
+     5.  MAL search + in-app detail view
+     6.  DuckDuckGo in-app webview browser
+     7.  Settings (SFW toggle)
+     8.  Event listeners
+     9.  Boot sequence
 ============================================================ */
 
 const API = window.api   // injected by preload.js
 
-// ── DOM refs ──────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+//  1. DOM REFS
+// ═══════════════════════════════════════════════════════════
 const $ = id => document.getElementById(id)
 
 const apiDot        = $('api-dot')
@@ -15,24 +28,61 @@ const newsList      = $('news-list')
 const btnHealth     = $('btn-health')
 const btnNews       = $('btn-news')
 const globalSearch  = $('global-search')
-const ddgInput      = $('ddg-input')
-const ddgBtn        = $('ddg-btn')
-const ddgOutput     = $('ddg-output')
 const malInput      = $('mal-input')
 const malBtn        = $('mal-btn')
 const malOutput     = $('mal-output')
 const malEmpty      = $('mal-empty')
+const sfwToggle     = $('sfw-toggle')
+const ddgInput      = $('ddg-input')
+const ddgBtn        = $('ddg-btn')
+const ddgWebview    = $('ddg-webview')
+const ddgBack       = $('ddg-back')
+const ddgForward    = $('ddg-forward')
+const ddgReload     = $('ddg-reload')
 
-// ── Helpers ───────────────────────────────────────────────
-function setApiStatus (online) {
-    apiDot.style.background    = online ? '#4ade80' : '#f87171'
-    apiDot.style.boxShadow     = online
-        ? '0 0 8px rgba(74,222,128,0.80)'
-        : '0 0 8px rgba(248,113,113,0.80)'
-    apiStatus.textContent      = online ? 'Rails API' : 'API offline'
-    if (settingsBadge) settingsBadge.textContent = online ? 'Connected' : 'Offline'
+// ═══════════════════════════════════════════════════════════
+//  2. UI HELPERS
+// ═══════════════════════════════════════════════════════════
+
+// Escape HTML — prevents XSS in all dynamic content
+function escHtml (str) {
+    return String(str)
+        .replace(/&/g,  '&amp;')
+        .replace(/</g,  '&lt;')
+        .replace(/>/g,  '&gt;')
+        .replace(/"/g,  '&quot;')
 }
 
+// Glassmorphism card wrapper
+function glassCard (heading, bodyHTML) {
+    return `
+    <div class="glass-card">
+      <div class="card-heading">${heading}</div>
+      <div class="card-body" style="font-size:16px;line-height:1.75;">${bodyHTML}</div>
+    </div>`
+}
+
+// Centred empty / error state with optional Frieren quote
+function emptyState (icon, msg, quote = '') {
+    return `
+    <div class="empty-state">
+      <div class="empty-icon">${icon}</div>
+      <p>${msg}</p>
+      ${quote ? `<em>${escHtml(quote)}</em>` : ''}
+    </div>`
+}
+
+// Animated loading state — pulsing orb
+function loading (msg = 'Casting spell…') {
+    return `
+    <div class="empty-state">
+      <div class="empty-icon"
+           style="animation:orb-pulse 1.2s ease-in-out infinite;">🔮</div>
+      <p>${msg}</p>
+    </div>`
+}
+
+// ── News card ─────────────────────────────────────────────
 function newsCardHTML (article) {
     const date = article.published_at
         ? new Date(article.published_at).toLocaleDateString('en-ZA', {
@@ -41,106 +91,180 @@ function newsCardHTML (article) {
         : '—'
 
     return `
-    <div class="news-card" data-url="${escHtml(article.url || '')}">
+    <div class="news-card" data-url="${escHtml(article.url || '')}"
+         style="cursor:pointer;">
       <div class="news-card-source">${escHtml(article.source_name || 'Archive')}</div>
       <div class="news-card-title">${escHtml(article.title || 'Untitled')}</div>
       <div class="news-card-summary">${escHtml(article.summary || '')}</div>
       <div class="news-card-time">${date}</div>
-    </div>
-  `
+    </div>`
 }
 
+// ── MAL search result card ────────────────────────────────
 function malCardHTML (anime) {
-    const score  = anime.score ? `⭐ ${anime.score}` : ''
-    const eps    = anime.episodes ? `· ${anime.episodes} eps` : ''
-    const status = anime.status || ''
+    const score   = anime.score    ? `⭐ ${anime.score}`       : ''
+    const eps     = anime.episodes ? `· ${anime.episodes} eps` : ''
+    const status  = anime.status   || ''
+    const synopsis = anime.synopsis
+        ? escHtml(anime.synopsis.slice(0, 180)) + '…'
+        : '<em style="opacity:0.5;">No synopsis available.</em>'
+    const img = anime.images?.jpg?.image_url
+        || anime.images?.webp?.image_url || ''
+
+    // Embed full anime JSON for fallback detail view
+    const safeJson = escHtml(JSON.stringify(anime))
+
     return `
-    <div class="news-card" data-mal-id="${anime.mal_id}">
-      <div class="news-card-source">
-        ${escHtml(anime.type || 'Anime')} ${eps} ${score}
+    <div class="news-card mal-card"
+         data-mal-id="${anime.mal_id}"
+         data-anime="${safeJson}"
+         style="display:flex;gap:14px;align-items:flex-start;cursor:pointer;">
+      ${img
+        ? `<img src="${escHtml(img)}" alt=""
+             style="width:54px;height:76px;object-fit:cover;
+                    border-radius:6px;flex-shrink:0;opacity:0.90;">`
+        : ''}
+      <div style="flex:1;min-width:0;">
+        <div class="news-card-source">
+          ${escHtml(anime.type || 'Anime')} ${eps} ${score}
+        </div>
+        <div class="news-card-title">${escHtml(anime.title || '')}</div>
+        <div class="news-card-summary">${synopsis}</div>
+        <div class="news-card-time">${escHtml(status)}</div>
       </div>
-      <div class="news-card-title">${escHtml(anime.title || '')}</div>
-      <div class="news-card-summary">${escHtml(anime.synopsis ? anime.synopsis.slice(0, 160) + '…' : '')}</div>
-      <div class="news-card-time">${escHtml(status)}</div>
-    </div>
-  `
+    </div>`
 }
 
-function ddgResultHTML (data) {
-    if (!data.Abstract && !data.Heading && (!data.Results || data.Results.length === 0)) {
-        return glassCard('🔮 No instant answer found',
-            'DuckDuckGo has no instant answer for this query. Try rewording it.')
-    }
-    const heading  = data.Heading || ''
-    const abstract = data.Abstract || ''
-    const img      = data.Image
-        ? `<img src="${escHtml(data.Image)}"
-             style="max-height:80px;border-radius:8px;margin-bottom:10px;opacity:0.85;" /><br>`
-        : ''
-    const link = data.AbstractURL
-        ? `<a href="${escHtml(data.AbstractURL)}"
-           style="color:var(--teal-bright);font-family:var(--font-body);font-size:16px;"
-           target="_blank">Open source ↗</a>`
-        : ''
-    let related = ''
-    if (data.RelatedTopics && data.RelatedTopics.length > 0) {
-        const items = data.RelatedTopics.slice(0, 5)
-            .filter(t => t.Text)
-            .map(t => `<li style="margin-bottom:6px;color:var(--text-mid);font-size:16px;">${escHtml(t.Text)}</li>`)
-            .join('')
-        related = items
-            ? `<div style="margin-top:14px;">
-           <div style="font-family:var(--font-title);font-size:13px;
-                       letter-spacing:0.15em;color:var(--gold);margin-bottom:6px;">
-             Related Topics
-           </div>
-           <ul style="list-style:none;padding:0;">${items}</ul>
-         </div>`
-            : ''
-    }
-    return glassCard(
-        `🔮 ${escHtml(heading) || 'Result'}`,
-        `${img}${escHtml(abstract)}${link ? '<br><br>' + link : ''}${related}`
-    )
-}
+// ── MAL in-app detail view ────────────────────────────────
+function showAnimeDetail (anime) {
+    const img     = anime.images?.jpg?.large_image_url
+        || anime.images?.jpg?.image_url || ''
+    const score   = anime.score    ? `⭐ ${anime.score}`    : 'N/A'
+    const eps     = anime.episodes ? `${anime.episodes} eps` : '?'
+    const status  = anime.status   || '—'
+    const aired   = anime.aired?.string || '—'
+    const genres  = anime.genres?.map(g => g.name).join(', ')  || '—'
+    const studios = anime.studios?.map(s => s.name).join(', ') || '—'
+    const syn     = anime.synopsis || 'No synopsis available.'
+    const trailer = anime.trailer?.embed_url || null
 
-function glassCard (heading, bodyHTML) {
-    return `
+    malOutput.innerHTML = `
     <div class="glass-card">
-      <div class="card-heading">${heading}</div>
-      <div class="card-body" style="font-size:16px;line-height:1.75;">${bodyHTML}</div>
-    </div>
-  `
+
+      <!-- Back button -->
+      <div class="card-heading"
+           style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <span id="mal-back"
+              style="cursor:pointer;opacity:0.65;font-size:14px;
+                     letter-spacing:0.1em;transition:opacity 0.2s;"
+              onmouseover="this.style.opacity=1"
+              onmouseout="this.style.opacity=0.65">
+          ← Back to results
+        </span>
+        <span>${escHtml(anime.title || '')}</span>
+      </div>
+
+      <div class="card-body">
+
+        <!-- Cover + meta -->
+        <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;">
+
+          ${img
+        ? `<img src="${escHtml(img)}" alt="${escHtml(anime.title || '')}"
+                 style="width:170px;height:240px;object-fit:cover;
+                        border-radius:10px;border:1px solid var(--border);
+                        flex-shrink:0;box-shadow:0 8px 32px rgba(0,0,0,0.5);">`
+        : ''}
+
+          <div style="flex:1;min-width:200px;">
+
+            <!-- Badges -->
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+              <span class="badge">${escHtml(anime.type || 'Anime')}</span>
+              <span class="badge">${escHtml(status)}</span>
+              <span class="badge">${score}</span>
+              <span class="badge">${eps}</span>
+            </div>
+
+            <!-- Detail rows -->
+            <div class="detail-row">
+              <span class="detail-label">Aired</span>
+              <span>${escHtml(aired)}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Genres</span>
+              <span>${escHtml(genres)}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Studios</span>
+              <span>${escHtml(studios)}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Rating</span>
+              <span>${escHtml(anime.rating || '—')}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Rank</span>
+              <span>#${anime.rank || '—'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Popularity</span>
+              <span>#${anime.popularity || '—'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Members</span>
+              <span>${anime.members?.toLocaleString() || '—'}</span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Synopsis -->
+        <div style="margin-top:20px;font-size:17px;
+                    line-height:1.85;color:var(--text-mid);">
+          ${escHtml(syn)}
+        </div>
+
+        <!-- Trailer embed (in-app) -->
+        ${trailer ? `
+        <div style="margin-top:24px;">
+          <div class="card-heading"
+               style="font-size:15px;margin-bottom:12px;">
+            🎬 Trailer
+          </div>
+          <iframe src="${escHtml(trailer)}"
+            style="width:100%;height:340px;
+                   border:1px solid var(--border);
+                   border-radius:10px;"
+            allowfullscreen frameborder="0"
+            allow="autoplay; encrypted-media">
+          </iframe>
+        </div>` : ''}
+
+      </div>
+    </div>`
+
+    // Back → re-run the last search
+    $('mal-back').addEventListener('click', () => searchMAL(malInput.value))
 }
 
-function emptyState (icon, msg, quote) {
-    return `
-    <div class="empty-state">
-      <div class="empty-icon">${icon}</div>
-      <p>${msg}</p>
-      ${quote ? `<em>${escHtml(quote)}</em>` : ''}
-    </div>
-  `
+// ═══════════════════════════════════════════════════════════
+//  3. API STATUS
+// ═══════════════════════════════════════════════════════════
+
+function setApiStatus (online) {
+    apiDot.style.background = online ? '#4ade80' : '#f87171'
+    apiDot.style.boxShadow  = online
+        ? '0 0 8px rgba(74,222,128,0.80)'
+        : '0 0 8px rgba(248,113,113,0.80)'
+    apiStatus.textContent = online ? 'Rails API' : 'API offline'
+    if (settingsBadge) settingsBadge.textContent = online ? 'Connected' : 'Offline'
 }
 
-function escHtml (str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-}
+// ═══════════════════════════════════════════════════════════
+//  4. NEWS
+// ═══════════════════════════════════════════════════════════
 
-function loading (msg = 'Casting spell…') {
-    return `
-    <div class="empty-state">
-      <div class="empty-icon" style="animation:orb-pulse 1.2s ease-in-out infinite;">🔮</div>
-      <p>${msg}</p>
-    </div>
-  `
-}
-
-// ── Health check ──────────────────────────────────────────
 async function checkHealth () {
     btnHealth.textContent = 'Checking…'
     btnHealth.disabled    = true
@@ -151,10 +275,9 @@ async function checkHealth () {
     return result.ok
 }
 
-// ── Load news ─────────────────────────────────────────────
 async function loadNews () {
-    newsList.innerHTML = loading('Summoning news from the archive…')
-    btnNews.disabled   = true
+    newsList.innerHTML  = loading('Summoning news from the archive…')
+    btnNews.disabled    = true
     btnNews.textContent = 'Loading…'
 
     const result = await API.get('/api/news')
@@ -167,7 +290,8 @@ async function loadNews () {
         )
         setApiStatus(false)
     } else {
-        const articles = result.data || []
+        const articles = Array.isArray(result.data) ? result.data : []
+
         if (articles.length === 0) {
             newsList.innerHTML = emptyState(
                 '🌿',
@@ -176,7 +300,8 @@ async function loadNews () {
             )
         } else {
             newsList.innerHTML = articles.map(newsCardHTML).join('')
-            // Click → open article URL externally
+
+            // News cards open article in OS default browser
             newsList.querySelectorAll('.news-card[data-url]').forEach(card => {
                 card.addEventListener('click', () => {
                     const url = card.dataset.url
@@ -191,32 +316,18 @@ async function loadNews () {
     btnNews.textContent = 'Load News'
 }
 
-// ── DuckDuckGo search ─────────────────────────────────────
-async function searchDDG (query) {
-    if (!query.trim()) return
-    ddgOutput.innerHTML = loading('Searching the world…')
-    const result = await API.get(`/api/search/web?q=${encodeURIComponent(query.trim())}`)
+// ═══════════════════════════════════════════════════════════
+//  5. MYANIME LIST / JIKAN — search + in-app detail
+// ═══════════════════════════════════════════════════════════
 
-    if (!result.ok) {
-        ddgOutput.innerHTML = emptyState(
-            '❄️',
-            'Search failed. Make sure the Rails API is running.',
-            '"Some things remain hidden, no matter how long you search."'
-        )
-        setApiStatus(false)
-    } else {
-        ddgOutput.innerHTML = ddgResultHTML(result.data)
-        setApiStatus(true)
-    }
-}
-
-// ── MyAnimeList / Jikan search ────────────────────────────
 async function searchMAL (query) {
     if (!query.trim()) return
-    malEmpty.style.display  = 'none'
+    if (malEmpty) malEmpty.style.display = 'none'
     malOutput.innerHTML = loading('Searching the Grimoire…')
 
-    const result = await API.get(`/api/anime/search?q=${encodeURIComponent(query.trim())}`)
+    const sfw    = localStorage.getItem('sfw_filter') === 'true'
+    const url    = `/api/anime/search?q=${encodeURIComponent(query.trim())}&sfw=${sfw}`
+    const result = await API.get(url)
 
     if (!result.ok) {
         malOutput.innerHTML = emptyState(
@@ -225,41 +336,138 @@ async function searchMAL (query) {
             '"Not every tome is open to those who seek it."'
         )
         setApiStatus(false)
-    } else {
-        const list = result.data?.data || result.data || []
-        if (list.length === 0) {
-            malOutput.innerHTML = emptyState('📖', 'No results found for that title.', '')
-        } else {
-            malOutput.innerHTML = `<div class="news-list">${list.map(malCardHTML).join('')}</div>`
-        }
-        setApiStatus(true)
+        return
     }
+
+    const list = result.data?.data || result.data || []
+
+    if (list.length === 0) {
+        malOutput.innerHTML = emptyState(
+            '📖',
+            'No results found for that title.',
+            '"Not all knowledge is written in the grimoires of this world."'
+        )
+    } else {
+        malOutput.innerHTML =
+            `<div class="news-list">${list.map(malCardHTML).join('')}</div>`
+
+        // Click card → show in-app detail view
+        malOutput.querySelectorAll('.mal-card').forEach(card => {
+            card.addEventListener('click', async () => {
+                const id = card.dataset.malId
+                if (!id) return
+
+                malOutput.innerHTML = loading('Opening grimoire entry…')
+
+                // Fetch full details from Jikan via Rails
+                const detail = await API.get(`/api/anime/${id}`)
+
+                if (detail.ok && detail.data && Object.keys(detail.data).length) {
+                    showAnimeDetail(detail.data)
+                } else {
+                    // Fallback — use search result data already on card
+                    try {
+                        showAnimeDetail(JSON.parse(card.dataset.anime || '{}'))
+                    } catch {
+                        malOutput.innerHTML = emptyState('❄️', 'Could not load details.', '')
+                    }
+                }
+            })
+        })
+    }
+
+    setApiStatus(true)
 }
 
-// ── Global search bar (top header) ───────────────────────
+// ═══════════════════════════════════════════════════════════
+//  6. DUCKDUCKGO — full in-app webview browser
+//     Unrestricted — kae=d (dark), k1=-1 (no ads)
+// ═══════════════════════════════════════════════════════════
+
+function ddgSearch (query) {
+    if (!query.trim()) return
+    const url = `https://duckduckgo.com/?q=${encodeURIComponent(query.trim())}&kae=d&k1=-1`
+    ddgWebview.src = url
+}
+
+// Webview browser controls
+if (ddgWebview) {
+    ddgBack.addEventListener('click',    () => ddgWebview.goBack())
+    ddgForward.addEventListener('click', () => ddgWebview.goForward())
+    ddgReload.addEventListener('click',  () => ddgWebview.reload())
+
+    // Sync address bar input with current webview URL
+    ddgWebview.addEventListener('did-navigate', e => {
+        try {
+            const url = new URL(e.url)
+            const q   = url.searchParams.get('q')
+            if (q) ddgInput.value = decodeURIComponent(q)
+        } catch { /* non-DDG page, ignore */ }
+    })
+}
+
+// ═══════════════════════════════════════════════════════════
+//  7. SETTINGS — SFW TOGGLE
+// ═══════════════════════════════════════════════════════════
+
+if (sfwToggle) {
+    // Restore saved preference on load
+    sfwToggle.checked = localStorage.getItem('sfw_filter') === 'true'
+
+    sfwToggle.addEventListener('change', () => {
+        localStorage.setItem('sfw_filter', sfwToggle.checked)
+        console.log(`[Settings] SFW filter: ${sfwToggle.checked ? 'ON ✅' : 'OFF ❌'}`)
+    })
+}
+
+// ═══════════════════════════════════════════════════════════
+//  8. EVENT LISTENERS
+// ═══════════════════════════════════════════════════════════
+
+// Global header search → DDG webview (Enter)
 globalSearch.addEventListener('keydown', e => {
     if (e.key !== 'Enter') return
     const q = globalSearch.value.trim()
     if (!q) return
     window.navigateTo('search')
     ddgInput.value = q
-    searchDDG(q)
+    ddgSearch(q)
     globalSearch.value = ''
 })
 
-// ── Button events ─────────────────────────────────────────
+// Health + News
 btnHealth.addEventListener('click', checkHealth)
-btnNews.addEventListener('click', loadNews)
+btnNews.addEventListener('click',   loadNews)
 
-ddgBtn.addEventListener('click', () => searchDDG(ddgInput.value))
-ddgInput.addEventListener('keydown', e => { if (e.key === 'Enter') searchDDG(ddgInput.value) })
+// DDG toolbar
+ddgBtn.addEventListener('click', () => ddgSearch(ddgInput.value))
+ddgInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') ddgSearch(ddgInput.value)
+})
 
+// MAL
 malBtn.addEventListener('click', () => searchMAL(malInput.value))
-malInput.addEventListener('keydown', e => { if (e.key === 'Enter') searchMAL(malInput.value) })
+malInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') searchMAL(malInput.value)
+})
 
-// ── Boot sequence ─────────────────────────────────────────
+// Ctrl+K → focus global search from anywhere
+document.addEventListener('keydown', e => {
+    if (e.ctrlKey && e.key === 'k') {
+        e.preventDefault()
+        globalSearch.focus()
+    }
+})
+
+// IPC nav — Ctrl+1…5 from main.js menu
+if (window.api?.onNav) {
+    window.api.onNav(section => window.navigateTo(section))
+}
+
+// ═══════════════════════════════════════════════════════════
+//  9. BOOT SEQUENCE
+// ═══════════════════════════════════════════════════════════
 ;(async () => {
-    // Show offline state immediately, then check
     setApiStatus(false)
     apiStatus.textContent = 'Connecting…'
     await checkHealth()

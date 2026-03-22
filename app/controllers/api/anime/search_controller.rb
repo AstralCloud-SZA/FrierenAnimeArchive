@@ -1,12 +1,15 @@
 module Api
   module Anime
     class SearchController < ApplicationController
+      # GET /api/anime/search?q=frieren&sfw=true
       def index
         query = params[:q]&.strip
         return render json: { error: 'Query required' }, status: :bad_request if query.blank?
 
-        # search_anime returns array directly now
-        results = JikanClient.search_anime(query, 15)
+        # sfw param comes from frontend settings toggle
+        sfw = params[:sfw] == 'true'
+
+        results = JikanClient.search_anime(query, 15, sfw: sfw)
         render json: { data: results }
       rescue => e
         Rails.logger.error "Anime search error: #{e.message}"
