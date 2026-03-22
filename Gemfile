@@ -1,7 +1,8 @@
 source "https://rubygems.org"
 
 gem "rails", "~> 8.1.2"
-gem "sqlite3", ">= 2.1"
+gem "sqlite3", "~> 2.1"   # used locally in development
+# gem "pg", "~> 1.5"        # used in CI and production
 gem "puma", ">= 5.0"
 
 # ═══════════════════════════════════════════════════════════
