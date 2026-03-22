@@ -1,22 +1,19 @@
-# Be sure to restart your server when you modify this file.
-
-# Avoid CORS issues when API is called from the frontend app.
-# Handle Cross-Origin Resource Sharing (CORS) in order to accept cross-origin Ajax requests.
-
-# Read more: https://github.com/cyu/rack-cors
-
-# config/initializers/cors.rb
+# config/initializers/cors.rb — Your file + Electron protocol
 Rails.application.config.middleware.insert_before 0, Rack::Cors do
   allow do
     origins do |origin|
-      # Allow localhost Electron dev + any production domain later
-      origin ||= request.headers['Origin']
-      origin.match?(/localhost/) || origin.match?(/frieren-archive\.com/)
+      origin ||= request.headers['Origin'] || ''
+      # Local dev + Electron + future prod
+      origin.match?(/localhost/) ||
+        origin.match?(/127\.0\.0\.1/) ||
+        origin.start_with?('app://') ||  # Electron protocol
+        origin.match?(/frieren-archive\.com/)
     end
 
-    resource '*',
+    resource '/api/*',  # Only API routes, not everything
              headers: :any,
-             methods: [:get, :post, :put, :patch, :delete, :options, :head],
-             credentials: true
+             methods: [:get, :post, :options],
+             credentials: true,
+             max_age: 3600
   end
 end
