@@ -5,11 +5,12 @@ module Api
       render json: {
         status: 'ok',
         timestamp: Time.current.iso8601,
-        uptime: Time.now - Rails.server.start_time,
         version: 'v0.1.0',
+        rails: Rails.version,
+        env: Rails.env,
         apis: {
           jikan: jikan_available?,
-          ddg: true  # always available
+          ddg: true
         }
       }, status: :ok
     end
@@ -17,7 +18,9 @@ module Api
     private
 
     def jikan_available?
-      JikanClient.ping rescue false
+      JikanClient.ping
+    rescue StandardError
+      false
     end
   end
 end

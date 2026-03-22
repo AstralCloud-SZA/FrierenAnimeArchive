@@ -1,13 +1,40 @@
+// preload.js
 const { contextBridge } = require('electron')
 
-contextBridge.exposeInMainWorld('frieren', {
-    async getHealth() {
-        const response = await fetch('http://localhost:3000/api/health')
-        return response.json()
-    },
-    async getNews() {
-        const response = await fetch('http://localhost:3000/api/news')
-        return response.json()
-    }
-})
+contextBridge.exposeInMainWorld('api', {
 
+    // ── Generic GET — used by ALL app.js calls ──────────────
+    async get (path) {
+        try {
+            const resp = await fetch(`http://localhost:3000${path}`)
+            const data = await resp.json()
+            return { ok: resp.ok, data }
+        } catch (err) {
+            console.error('[preload] GET failed:', err.message)
+            return { ok: false, data: null, error: err.message }
+        }
+    },
+
+    // ── Generic POST ────────────────────────────────────────
+    async post (path, body = {}) {
+        try {
+            const resp = await fetch(`http://localhost:3000${path}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+            const data = await resp.json()
+            return { ok: resp.ok, data }
+        } catch (err) {
+            console.error('[preload] POST failed:', err.message)
+            return { ok: false, data: null, error: err.message }
+        }
+    },
+
+    // ── Nav events from main process (Ctrl+1…5) ─────────────
+    onNav (callback) {
+        const { ipcRenderer } = require('electron')
+        ipcRenderer.on('navigate', (_event, section) => callback(section))
+    }
+
+})
