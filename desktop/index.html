@@ -66,12 +66,11 @@
       Frieren Archive &rsaquo;
       <span class="page-name" id="page-name">News</span>
     </div>
-
     <div class="header-search">
       <span class="header-search-icon">🔮</span>
-      <input type="text" id="global-search" placeholder="Search the world… (DuckDuckGo) · Ctrl+K">
+      <input type="text" id="global-search"
+             placeholder="Search the world… (DuckDuckGo) · Ctrl+K">
     </div>
-
     <div class="header-actions">
       <div class="status-pill">
         <div class="status-dot" id="api-dot"></div>
@@ -87,12 +86,15 @@
 
     <!-- ── NEWS ── -->
     <div class="section visible" id="section-news">
+
       <div class="glass-card">
         <div class="card-heading">📜 Latest Anime News</div>
         <div class="card-body">
           Live from ANN via Rails API · Click <strong>Load News</strong> to fetch.
         </div>
       </div>
+
+      <!-- Article list -->
       <div class="news-list" id="news-list">
         <div class="empty-state">
           <div class="empty-icon">🌿</div>
@@ -100,10 +102,41 @@
           <em>"Even a thousand years of travelling doesn't erase the joy of discovering something new."</em>
         </div>
       </div>
+
+      <!-- In-app article reader — hidden until a card is clicked -->
+      <div id="news-reader" style="display:none;">
+        <div class="glass-card">
+          <div class="card-heading"
+               style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+            <span id="news-reader-back"
+                  style="cursor:pointer;opacity:0.65;font-size:14px;letter-spacing:0.1em;"
+                  onmouseover="this.style.opacity=1"
+                  onmouseout="this.style.opacity=0.65">← Back to News</span>
+            <span id="news-reader-title">Article</span>
+          </div>
+        </div>
+        <webview
+                id="news-webview"
+                src="about:blank"
+                partition="persist:news"
+                useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                style="width:100%;
+                 height:calc(100vh - 240px);
+                 min-height:500px;
+                 margin-top:12px;
+                 border:1px solid var(--border);
+                 border-radius:12px;
+                 background:#020408;"
+                allowpopups>
+        </webview>
+      </div>
+
     </div>
+    <!-- /#section-news -->
 
     <!-- ── MYANIME LIST ── -->
     <div class="section" id="section-mal">
+
       <div class="glass-card">
         <div class="card-heading">📖 MyAnimeList · Jikan Search</div>
         <div class="card-body">
@@ -111,21 +144,28 @@
           SFW filter toggled in <strong>Settings</strong>.
         </div>
       </div>
+
       <div class="search-bar-large">
         <span class="search-ico">📖</span>
-        <input type="text" id="mal-input" placeholder="Search anime titles… e.g. Frieren, Bleach, Berserk">
+        <input type="text" id="mal-input"
+               placeholder="Search anime titles… e.g. Frieren, Bleach, Berserk">
       </div>
       <button class="search-btn" id="mal-btn">Search Anime</button>
+
       <div id="mal-output" style="margin-top:20px;"></div>
+
       <div class="empty-state" id="mal-empty">
         <div class="empty-icon">📖</div>
         <p>Search for any anime above to begin exploring.</p>
         <em>"Knowledge gained through long years of study is never truly lost."</em>
       </div>
-    </div>
 
-    <!-- ── QUICK SEARCH (DuckDuckGo in-app webview) ── -->
+    </div>
+    <!-- /#section-mal -->
+
+    <!-- ── QUICK SEARCH · DuckDuckGo webview ── -->
     <div class="section" id="section-search">
+
       <div class="glass-card">
         <div class="card-heading">🔮 Quick Search · DuckDuckGo</div>
         <div class="card-body">
@@ -133,22 +173,24 @@
         </div>
       </div>
 
-      <!-- Browser toolbar -->
       <div class="ddg-toolbar">
         <div class="search-bar-large" style="flex:1;margin:0;">
           <span class="search-ico">🔮</span>
-          <input type="text" id="ddg-input" placeholder="Ask anything… e.g. Frieren season 2 release date">
+          <input type="text" id="ddg-input"
+                 placeholder="Ask anything… e.g. Frieren season 2 release date">
         </div>
-        <button class="search-btn" id="ddg-btn" style="margin:0;white-space:nowrap;">Search</button>
-        <button class="header-btn" id="ddg-back" title="Back">←</button>
+        <button class="search-btn" id="ddg-btn"
+                style="margin:0;white-space:nowrap;">Search</button>
+        <button class="header-btn" id="ddg-back"    title="Back">←</button>
         <button class="header-btn" id="ddg-forward" title="Forward">→</button>
-        <button class="header-btn" id="ddg-reload" title="Reload">↺</button>
+        <button class="header-btn" id="ddg-reload"  title="Reload">↺</button>
       </div>
 
-      <!-- In-app DuckDuckGo browser — unrestricted -->
       <webview
               id="ddg-webview"
-              src="https://duckduckgo.com/?kae=d&k1=-1"
+              src="https://duckduckgo.com/?kae=d&k1=-1&kp=-2"
+              partition="persist:browser"
+              useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
               style="width:100%;
                height:calc(100vh - 280px);
                min-height:420px;
@@ -156,25 +198,50 @@
                border:1px solid var(--border);
                border-radius:12px;
                background:#020408;"
-              allowpopups>
+              allowpopups
+              disablewebsecurity>
       </webview>
+
     </div>
+    <!-- /#section-search -->
 
     <!-- ── FAVOURITES ── -->
     <div class="section" id="section-favorites">
+
       <div class="glass-card">
         <div class="card-heading">⭐ Favourites</div>
-        <div class="card-body">Pinned articles and saved anime · coming soon.</div>
+        <div class="card-body">Your saved anime and pinned articles · stored locally.</div>
       </div>
-      <div class="empty-state">
-        <div class="empty-icon">✨</div>
-        <p>Nothing saved yet.</p>
-        <em>"Some things are worth keeping, even after all this time."</em>
+
+      <div class="fav-tabs">
+        <button class="fav-tab active" data-tab="fav-anime">📖 Anime</button>
+        <button class="fav-tab"        data-tab="fav-articles">📜 Articles</button>
       </div>
+
+      <div id="fav-anime" class="fav-panel">
+        <div class="empty-state" id="fav-anime-empty">
+          <div class="empty-icon">📖</div>
+          <p>No saved anime yet.</p>
+          <em>"Some stories are worth keeping forever."</em>
+        </div>
+        <div class="news-list" id="fav-anime-list"></div>
+      </div>
+
+      <div id="fav-articles" class="fav-panel" style="display:none;">
+        <div class="empty-state" id="fav-articles-empty">
+          <div class="empty-icon">📜</div>
+          <p>No pinned articles yet.</p>
+          <em>"Even a fleeting moment can be worth remembering."</em>
+        </div>
+        <div class="news-list" id="fav-articles-list"></div>
+      </div>
+
     </div>
+    <!-- /#section-favorites -->
 
     <!-- ── SETTINGS ── -->
     <div class="section" id="section-settings">
+
       <div class="glass-card">
         <div class="card-heading">⚙️ Settings</div>
         <div class="card-body">
@@ -190,7 +257,7 @@
           <div class="setting-row">
             <div>
               <div class="setting-label">SFW Filter</div>
-              <div class="setting-desc">Hide adult content from MyAnimeList search results</div>
+              <div class="setting-desc">Hide adult content from MyAnimeList search</div>
             </div>
             <label class="toggle" title="Toggle safe-for-work filter">
               <input type="checkbox" id="sfw-toggle">
@@ -231,10 +298,13 @@
 
         </div>
       </div>
+
     </div>
+    <!-- /#section-settings -->
 
   </main>
 </div>
+<!-- /.app-shell -->
 
 <script src="renderer/js/snow.js"></script>
 <script src="renderer/js/nav.js"></script>

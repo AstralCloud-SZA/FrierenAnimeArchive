@@ -1,15 +1,12 @@
 # app/services/news_fetcher.rb
 require 'feedjira'
-require 'faraday'
+require 'net/http'
+require 'uri'
+require 'openssl'
 
 class NewsFetcher
-  ANN_RSS   = 'https://www.animenewsnetwork.com/all/rss.xml'.freeze
-  SOURCES   = {
-    'ANN'   => 'https://www.animenewsnetwork.com/all/rss.xml',
-    'Jikan' => 'https://api.jikan.moe/v4/watch/episodes'   # bonus source
-  }.freeze
+  ANN_RSS = 'https://www.animenewsnetwork.com/all/rss.xml?ann-edition=us'.freeze
 
-  # ── Main refresh — call from controller or job ────────
   def self.refresh
     Rails.logger.info "🌿 NewsFetcher: starting refresh..."
     fetch_ann
@@ -20,54 +17,84 @@ class NewsFetcher
 
   private
 
-  # ── ANN RSS ───────────────────────────────────────────
   def self.fetch_ann
     Rails.logger.info "📡 Fetching ANN RSS..."
 
-    response = Faraday.get(ANN_RSS)
-    unless response.success?
-      Rails.logger.error "ANN RSS failed: HTTP #{response.status}"
+    body = fetch_with_redirects(ANN_RSS)
+
+    unless body
+      Rails.logger.error "ANN RSS: empty response after redirects"
       return
     end
 
-    feed    = Feedjira.parse(response.body)
-    saved   = 0
-    skipped = 0
+    Rails.logger.info "ANN RSS fetched: #{body.bytesize} bytes"
+
+    feed  = Feedjira.parse(body)
+    saved = 0
 
     feed.entries.first(20).each do |entry|
       next if entry.url.blank? || entry.title.blank?
 
-      # find_or_create_by → skip duplicates by URL
-      created = Article.find_or_create_by(url: entry.url.strip) do |article|
+      Article.find_or_create_by(url: entry.url.strip) do |article|
         article.title        = entry.title.truncate(255)
         article.summary      = clean_html(entry.summary || entry.content || '')
         article.source_name  = 'ANN'
-        article.image_url    = extract_image(entry)
+        article.image_url    = entry.try(:image) || entry.try(:enclosure)&.url
         article.published_at = entry.published || Time.current
         article.featured     = false
         saved += 1
       end
-
-      skipped += 1 unless created.previously_new_record?
     end
 
-    Rails.logger.info "ANN: #{saved} saved, #{skipped} skipped (duplicates)"
+    Rails.logger.info "ANN: #{saved} new articles saved"
   rescue => e
     Rails.logger.error "fetch_ann error: #{e.message}"
+    Rails.logger.error e.backtrace.first(3).join("\n")
   end
 
-  # ── Strip HTML tags from summaries ───────────────────
+  # Follows 301/302 redirects up to 5 times
+  def self.fetch_with_redirects(url, limit = 5)
+    raise "Too many redirects" if limit.zero?
+
+    uri  = URI.parse(url)
+    http = Net::HTTP.new(uri.host, uri.port)
+
+    if uri.scheme == 'https'
+      http.use_ssl     = true
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE   # Windows fix
+    end
+
+    http.open_timeout = 10
+    http.read_timeout = 20
+
+    request = Net::HTTP::Get.new(uri.request_uri)
+    request['User-Agent'] = 'FrierenArchive/0.1.0 RSS Reader'
+
+    response = http.request(request)
+
+    case response
+    when Net::HTTPSuccess
+      response.body
+    when Net::HTTPRedirection
+      new_url = response['location']
+      Rails.logger.info "ANN RSS redirected → #{new_url}"
+      fetch_with_redirects(new_url, limit - 1)
+    else
+      Rails.logger.error "ANN RSS HTTP #{response.code}: #{response.message}"
+      nil
+    end
+  rescue => e
+    Rails.logger.error "fetch_with_redirects error: #{e.message}"
+    nil
+  end
+
   def self.clean_html(html)
-    ActionController::Base.helpers.strip_tags(html).gsub(/\s+/, ' ').strip.truncate(300)
+    ActionController::Base.helpers
+                          .strip_tags(html)
+                          .gsub(/\s+/, ' ')
+                          .strip
+                          .truncate(300)
   rescue
     html.to_s.truncate(300)
-  end
-
-  # ── Try multiple image sources from feed entry ────────
-  def self.extract_image(entry)
-    entry.try(:image)             ||
-      entry.try(:enclosure)&.url    ||
-      entry.try(:itunes_image)      ||
-      nil
   end
 end
