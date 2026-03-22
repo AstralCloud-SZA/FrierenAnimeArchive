@@ -74,7 +74,8 @@
 ============================================================ */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
+html, body
+{
     height: 100%;
     font-family: var(--font-body);
     font-size: 22px;
@@ -91,7 +92,8 @@ html, body {
    SNOW CANVAS — slightly gold-tinted particles
    z-index: 0 sits above body background, below app-shell (z:1)
 ============================================================ */
-#snow-canvas {
+#snow-canvas
+{
     position: fixed;
     inset: 0;
     pointer-events: none;
@@ -102,15 +104,14 @@ html, body {
 /* ============================================================
    APP SHELL — transparent so canvas bleeds through
 ============================================================ */
-.app-shell {
+.app-shell
+{
     position: relative;
     z-index: 1;
     display: grid;
     grid-template-columns: 232px 1fr;
     grid-template-rows: 66px 1fr;
-    grid-template-areas:
-        "sidebar header"
-        "sidebar main";
+    grid-template-areas:"sidebar header""sidebar main";
     height: 100vh;
     background: transparent; /* ← canvas must show through here */
 }
@@ -121,12 +122,7 @@ html, body {
 .sidebar {
     grid-area: sidebar;
     /* ✅ rgba instead of solid hex — canvas visible behind sidebar */
-    background: linear-gradient(
-            180deg,
-            rgba(1,  3,  6, 0.90) 0%,
-            rgba(2,  5,  9, 0.90) 45%,
-            rgba(1,  2,  5, 0.92) 100%
-    );
+    background: linear-gradient(180deg, rgba(1,  3,  6, 0.90) 0%, rgba(2,  5,  9, 0.90) 45%, rgba(1,  2,  5, 0.92) 100%);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -136,7 +132,8 @@ html, body {
 }
 
 /* Gold constellation circle */
-.sidebar::before {
+.sidebar::before
+{
     content: "";
     position: absolute;
     bottom: 56px;
@@ -146,30 +143,24 @@ html, body {
     height: 148px;
     border-radius: 50%;
     border: 1px solid rgba(240, 208, 112, 0.10);
-    box-shadow:
-            0 0 0 20px rgba(240, 208, 112, 0.040),
-            0 0 0 42px rgba(240, 208, 112, 0.018),
-            0 0 0 66px rgba(240, 208, 112, 0.008),
-            0 0 60px  rgba(240, 208, 112, 0.06);
+    box-shadow: 0 0 0 20px rgba(240, 208, 112, 0.040), 0 0 0 42px rgba(240, 208, 112, 0.018), 0 0 0 66px rgba(240, 208, 112, 0.008), 0 0 60px  rgba(240, 208, 112, 0.06);
     pointer-events: none;
 }
 
 /* Warm gold nebula glow at base */
-.sidebar::after {
+.sidebar::after
+{
     content: "";
     position: absolute;
     bottom: 0; left: 0; right: 0;
     height: 120px;
-    background: radial-gradient(
-            ellipse at 50% 100%,
-            rgba(240, 208, 112, 0.08) 0%,
-            transparent 70%
-    );
+    background: radial-gradient(ellipse at 50% 100%, rgba(240, 208, 112, 0.08) 0%, transparent 70%);
     pointer-events: none;
 }
 
 /* Brand */
-.sidebar-brand {
+.sidebar-brand
+{
     padding: 18px 18px 14px 18px;
     border-bottom: 1px solid var(--border);
     display: flex;
@@ -178,36 +169,29 @@ html, body {
 }
 
 /* Staff orb — layered gold → teal → void */
-.brand-orb {
+.brand-orb
+{
     width: 38px;
     height: 38px;
     border-radius: 50%;
     flex-shrink: 0;
-    background: radial-gradient(
-            circle at 30% 27%,
-            #ffffff          0%,
-            var(--gold-warm) 18%,
-            var(--gold)      38%,
-            var(--teal-deep) 65%,
-            var(--bg-deep)   100%
-    );
-    box-shadow:
-            0 0 18px var(--gold-glow),
-            0 0 38px rgba(240, 208, 112, 0.22),
-            0 0 70px rgba(240, 208, 112, 0.10),
-            inset 0 1px 3px rgba(255, 255, 255, 0.35);
+    background: radial-gradient(circle at 30% 27%, #ffffff  0%, var(--gold-warm) 18%, var(--gold)  38%, var(--teal-deep) 65%, var(--bg-deep)   100%);
+    box-shadow: 0 0 18px var(--gold-glow), 0 0 38px rgba(240, 208, 112, 0.22), 0 0 70px rgba(240, 208, 112, 0.10), inset 0 1px 3px rgba(255, 255, 255, 0.35);
     animation: orb-pulse 5s ease-in-out infinite;
 }
 
-@keyframes orb-pulse {
-    0%, 100% {
+@keyframes orb-pulse
+{
+    0%, 100%
+    {
         box-shadow:
                 0 0 18px var(--gold-glow),
                 0 0 38px rgba(240, 208, 112, 0.22),
                 0 0 70px rgba(240, 208, 112, 0.10),
                 inset 0 1px 3px rgba(255, 255, 255, 0.35);
     }
-    50% {
+    50%
+    {
         box-shadow:
                 0 0 28px var(--gold-glow-hard),
                 0 0 56px rgba(240, 208, 112, 0.35),
@@ -219,7 +203,8 @@ html, body {
 
 .brand-text { display: flex; flex-direction: column; }
 
-.brand-text strong {
+.brand-text strong
+{
     font-family: var(--font-brand);
     font-size: 19px;
     font-weight: 700;
@@ -228,7 +213,8 @@ html, body {
     line-height: 1.15;
 }
 
-.brand-text span {
+.brand-text span
+{
     font-family: var(--font-body);
     font-size: 14px;
     text-transform: uppercase;
@@ -238,7 +224,8 @@ html, body {
 }
 
 /* Nav section label */
-.nav-section-label {
+.nav-section-label
+{
     font-family: var(--font-title);
     font-size: 12px;
     text-transform: uppercase;
@@ -248,7 +235,8 @@ html, body {
 }
 
 /* Nav */
-.sidebar-nav {
+.sidebar-nav
+{
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -256,7 +244,8 @@ html, body {
     padding: 0 8px;
 }
 
-.nav-item {
+.nav-item
+{
     display: flex;
     align-items: center;
     gap: 11px;
@@ -285,7 +274,8 @@ html, body {
     transition: opacity 0.22s;
 }
 
-.nav-item:hover {
+.nav-item:hover
+{
     background: rgba(240, 208, 112, 0.06);
     color: var(--silver-mid);
     border-color: rgba(240, 208, 112, 0.18);
@@ -295,18 +285,12 @@ html, body {
 .nav-item:hover .nav-icon { opacity: 0.85; }
 
 /* Active: gold panel */
-.nav-item.active {
-    background: linear-gradient(
-            135deg,
-            rgba(240, 208, 112, 0.16) 0%,
-            rgba(240, 208, 112, 0.07) 60%,
-            rgba(77,  184, 160, 0.06) 100%
-    );
+.nav-item.active
+{
+    background: linear-gradient(135deg, rgba(240, 208, 112, 0.16) 0%, rgba(240, 208, 112, 0.07) 60%, rgba(77,  184, 160, 0.06) 100%);
     color: var(--gold-bright);
     border-color: rgba(240, 208, 112, 0.42);
-    box-shadow:
-            0 4px 20px rgba(240, 208, 112, 0.15),
-            inset 0 1px rgba(255, 255, 255, 0.06);
+    box-shadow: 0 4px 20px rgba(240, 208, 112, 0.15), inset 0 1px rgba(255, 255, 255, 0.06);
     font-weight: 500;
 }
 
@@ -358,15 +342,7 @@ html, body {
     position: absolute;
     bottom: 0; left: 0; right: 0;
     height: 1px;
-    background: linear-gradient(
-            90deg,
-            transparent          0%,
-            var(--gold)         20%,
-            var(--gold-bright)  45%,
-            var(--teal-bright)  65%,
-            var(--frost)        85%,
-            transparent        100%
-    );
+    background: linear-gradient(90deg, transparent  0%, var(--gold)   20%, var(--gold-bright)  45%, var(--teal-bright)  65%, var(--frost)   85%, transparent   100%);
     opacity: 0.65;
 }
 
@@ -496,12 +472,11 @@ html, body {
 /* ============================================================
    MAIN CONTENT — semi-transparent so canvas bleeds through
 ============================================================ */
-.main
-{
+.main {
     grid-area: main;
     overflow: auto;
     padding: 26px;
-
+    /* ✅ solid hex → rgba so canvas is visible beneath */
     background:
             radial-gradient(ellipse at 50% 0%,   rgba(240, 208, 112, 0.07) 0%, transparent 55%),
             radial-gradient(ellipse at 50% 100%, rgba(77,  184, 160, 0.04) 0%, transparent 60%),
@@ -519,7 +494,8 @@ html, body {
 /* ============================================================
    GLASS CARD — gold-white nebula glow
 ============================================================ */
-.glass-card {
+.glass-card
+{
     background: linear-gradient(145deg, rgba(240, 208, 112, 0.10) 0%, rgba(253, 246, 232, 0.07) 35%, rgba(7,  13,  26, 0.85)  100%);
     border: 1px solid var(--border);
     border-radius: 16px;
@@ -558,7 +534,7 @@ html, body {
     content: "";
     flex: 1;
     height: 1px;
-    background: linear-gradient(90deg, var(--gold-bright) 0%, var(--gold)   40%, var(--teal) 80%, transparent  100%);
+    background: linear-gradient(90deg, var(--gold-bright) 0%, var(--gold)    40%, var(--teal)  80%, transparent   100%);
     opacity: 0.30;
     margin-left: 10px;
 }
