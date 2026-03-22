@@ -12,6 +12,9 @@ gem "faraday", "~> 2.9"
 gem "faraday-retry", "~> 2.2"
 gem "feedjira", "~> 3.0"        # ANN RSS news feed
 gem "http", "~> 5.2"            # HTTP client for NewsFetcher RSS fetch
+gem 'ruby-readability'
+gem 'nokogiri' # likely already present
+
 
 # CORS — Electron dev + production
 gem "rack-cors"

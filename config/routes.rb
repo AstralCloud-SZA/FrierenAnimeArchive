@@ -1,13 +1,17 @@
 # config/routes.rb
 Rails.application.routes.draw do
   get "search/index"
-  # API namespace
+
   namespace :api do
     # Health check
     get "health", to: "health#index"
 
     # News
-    resources :news, only: [ :index, :show ]
+    resources :news, only: [ :index, :show ] do
+      collection do
+        get "content", to: "news#fetch_content"   # ← adds GET /api/news/content
+      end
+    end
 
     # Anime (Jikan proxy)
     namespace :anime do

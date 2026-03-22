@@ -7,6 +7,7 @@ const SECTIONS = {
     mal:       { label: 'MyAnimeList',  el: null },
     search:    { label: 'Quick Search', el: null },
     favorites: { label: 'Favourites',   el: null },
+    anime:     { label: 'Watch Anime',  el: null },
     settings:  { label: 'Settings',     el: null }
 }
 
@@ -42,7 +43,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => navigateTo(item.dataset.section))
 })
 
-// Menu shortcuts from main process (Ctrl+1…5)
+// Menu shortcuts from main process
 if (window.api && window.api.onNav) {
     window.api.onNav(section => navigateTo(section))
 }
@@ -50,10 +51,16 @@ if (window.api && window.api.onNav) {
 // Keyboard shortcuts within renderer
 document.addEventListener('keydown', e => {
     if (e.ctrlKey) {
-        const map = { '1':'news', '2':'mal', '3':'search', '4':'favorites', '5':'settings' }
+        const map = {
+            '1': 'news',
+            '2': 'mal',
+            '3': 'search',
+            '4': 'favorites',
+            '5': 'anime',
+            '6': 'settings'
+        }
         if (map[e.key]) { e.preventDefault(); navigateTo(map[e.key]) }
     }
-    // Ctrl+K → focus global search
     if (e.ctrlKey && e.key === 'k') {
         e.preventDefault()
         document.getElementById('global-search')?.focus()

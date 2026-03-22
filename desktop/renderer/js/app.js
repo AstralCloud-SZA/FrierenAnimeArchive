@@ -172,8 +172,8 @@ function closeNewsDetail () {
     if (old) old.remove()
 }
 
-// ── In-app native article detail ─────────────────────────
-function showArticleDetail (article) {
+// ── In-app native article detail (fetches full content) ───
+async function showArticleDetail (article) {
     const date = article.published_at
         ? new Date(article.published_at).toLocaleDateString('en-ZA', {
             day: 'numeric', month: 'short', year: 'numeric',
@@ -182,18 +182,17 @@ function showArticleDetail (article) {
         : '—'
     const img = article.image || article.thumbnail || article.image_url || ''
 
-    // Hide original webview header card, hide the webview itself
     const orig = newsReaderOrigCard()
     if (orig) orig.style.display = 'none'
     newsWebview.style.display = 'none'
     newsWebview.src           = 'about:blank'
-
-    newsList.style.display   = 'none'
-    newsReader.style.display = 'block'
+    newsList.style.display    = 'none'
+    newsReader.style.display  = 'block'
 
     const old = $('news-native-detail')
     if (old) old.remove()
 
+    // Render shell immediately with loading spinner in body
     const detail = document.createElement('div')
     detail.id = 'news-native-detail'
     detail.innerHTML = `
@@ -207,9 +206,23 @@ function showArticleDetail (article) {
               onmouseout="this.style.opacity=0.65">← Back to News</span>
         <span style="flex:1;">${escHtml(article.title || 'Article')}</span>
       </div>
+      <div class="card-body" id="news-detail-body">
+        ${loading('Fetching full article…')}
+      </div>
+    </div>`
 
-      <div class="card-body">
-        <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;">
+    newsReader.appendChild(detail)
+    $('news-detail-back').addEventListener('click', () => closeNewsDetail())
+
+    // Fetch full parsed content from Rails
+    const result = await API.get(`/api/news/content?url=${encodeURIComponent(article.url)}`)
+    const body   = $('news-detail-body')
+
+    if (result.ok && result.data?.content) {
+        // ── Success — render full parsed article ─────────────
+        body.innerHTML = `
+        <div style="display:flex;gap:22px;flex-wrap:wrap;
+                    align-items:flex-start;margin-bottom:24px;">
           ${img ? `
           <img src="${escHtml(img)}" alt=""
                style="width:160px;height:220px;object-fit:cover;border-radius:10px;
@@ -228,39 +241,80 @@ function showArticleDetail (article) {
               <span class="detail-label">Published</span>
               <span>${escHtml(date)}</span>
             </div>
-            <div class="detail-row" style="align-items:flex-start;">
-              <span class="detail-label">Link</span>
-              <span style="word-break:break-all;font-size:13px;opacity:0.6;">
-                ${escHtml(article.url || '—')}
-              </span>
+          </div>
+        </div>
+
+        <div id="article-full-content"
+             style="font-size:16px;line-height:1.9;color:var(--text-mid);
+                    border-top:1px solid var(--border);padding-top:20px;">
+          ${result.data.content}
+        </div>`
+
+        // Intercept links — open in DDG webview instead of browser
+        detail.querySelectorAll('#article-full-content a').forEach(a => {
+            a.addEventListener('click', e => {
+                e.preventDefault()
+                const href = a.getAttribute('href')
+                if (href) {
+                    window.navigateTo('search')
+                    ddgWebview.src = href
+                    ddgInput.value = a.textContent || ''
+                }
+            })
+        })
+
+        // Style and sanitise images in parsed content
+        detail.querySelectorAll('#article-full-content img').forEach(img => {
+            img.style.maxWidth     = '100%'
+            img.style.borderRadius = '8px'
+            img.style.margin       = '12px 0'
+            img.onerror            = () => img.remove()
+        })
+
+    } else {
+        // ── Fallback — show summary if parse fails ────────────
+        body.innerHTML = `
+        <div style="display:flex;gap:22px;flex-wrap:wrap;
+                    align-items:flex-start;margin-bottom:24px;">
+          ${img ? `
+          <img src="${escHtml(img)}" alt=""
+               style="width:160px;height:220px;object-fit:cover;border-radius:10px;
+                      border:1px solid var(--border);flex-shrink:0;
+                      box-shadow:0 8px 32px rgba(0,0,0,0.5);">` : ''}
+          <div style="flex:1;min-width:200px;">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+              <span class="badge">${escHtml(article.source_name || 'Archive')}</span>
+              <span class="badge">${escHtml(date)}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Source</span>
+              <span>${escHtml(article.source_name || '—')}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Published</span>
+              <span>${escHtml(date)}</span>
             </div>
           </div>
         </div>
 
-        <div style="margin-top:24px;font-size:17px;line-height:1.9;
-                    color:var(--text-mid);border-top:1px solid var(--border);
-                    padding-top:20px;">
-          ${escHtml(article.summary || 'No summary available.')}
+        <div style="font-size:16px;line-height:1.9;color:var(--text-mid);
+                    border-top:1px solid var(--border);padding-top:20px;">
+          ${escHtml(article.summary || 'No content available.')}
         </div>
 
-        <div style="margin-top:24px;">
+        <div style="margin-top:20px;">
           <button class="search-btn" id="news-open-external"
                   style="font-size:14px;padding:10px 22px;">
-            🔗 Read Full Article on ${escHtml(article.source_name || 'Source')}
+            🔗 Read on ${escHtml(article.source_name || 'Source')}
           </button>
-        </div>
-      </div>
-    </div>`
+        </div>`
 
-    newsReader.appendChild(detail)
-
-    $('news-detail-back').addEventListener('click', () => closeNewsDetail())
-
-    $('news-open-external').addEventListener('click', () => {
-        window.navigateTo('search')
-        ddgWebview.src = article.url
-        ddgInput.value = article.title || ''
-    })
+        $('news-open-external')?.addEventListener('click', () => {
+            window.navigateTo('search')
+            ddgWebview.src = article.url
+            ddgInput.value = article.title || ''
+        })
+    }
 }
 
 // ── Original back button (fallback) ──────────────────────
@@ -311,8 +365,8 @@ async function loadNews () {
                 btn.addEventListener('click', e => {
                     e.stopPropagation()
                     try {
-                        const card    = btn.closest('.news-card')
-                        const article = JSON.parse(unescHtml(card.dataset.article))
+                        const card        = btn.closest('.news-card')
+                        const article     = JSON.parse(unescHtml(card.dataset.article))
                         toggleFavArticle(article)
                         const now         = isFavArticle(article.url)
                         btn.textContent   = now ? '⭐' : '☆'
@@ -721,7 +775,6 @@ function renderFavourites () {
             })
         })
 
-        // ✅ FIXED: was calling removed openArticleInApp — now uses showArticleDetail
         articlesList.querySelectorAll('.news-card').forEach(card => {
             card.addEventListener('click', e => {
                 if (e.target.classList.contains('fav-remove-btn')) return
@@ -835,7 +888,6 @@ document.addEventListener('keydown', e => {
     }
 })
 
-// ✅ FIXED: duplicate onNav block removed — only one remains
 if (window.api?.onNav) {
     window.api.onNav(section => window.navigateTo(section))
 }
