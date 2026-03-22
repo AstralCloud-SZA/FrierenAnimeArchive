@@ -1,11 +1,11 @@
 /* ============================================================
    snow.js — Frieren Magic Canvas
    ─────────────────────────────────────────────────────────
-   Three layered effects:
-     1. Snow      — warm gold-white drifting particles
-     2. Petals    — Frieren's flower field magic, rising blooms
-     3. Rune rings — expanding magic circles (gold/teal)
-     4. Sparkles  — 4-point star twinkles (gold/silver)
+   Three layered effects — BRIGHTENED VERSION:
+     1. Snow      — warm gold-white drifting particles (bigger, brighter)
+     2. Petals    — Frieren's flower field magic, blooming upward (stronger bloom)
+     3. Rune rings — expanding magic circles (gold/teal, vivid glow)
+     4. Sparkles  — 4-point star twinkles (gold/silver, sharper)
 ============================================================ */
 
 const canvas = document.getElementById('snow-canvas')
@@ -36,26 +36,28 @@ function randInt(min, max) { return Math.floor(rand(min, max)) }
 function pick   (...arr)   { return arr[Math.floor(Math.random() * arr.length)] }
 
 // ═══════════════════════════════════════════════════════════
-//  1. SNOW PARTICLES
+//  1. SNOW PARTICLES — BIGGER & BRIGHTER
 // ═══════════════════════════════════════════════════════════
-const SNOW_COUNT = 70
+const SNOW_COUNT = 90
 const snow = []
 
-function makeFlake () {
+function makeFlake ()
+{
     return {
         x:       rand(0, canvas.width),
         y:       rand(-10, canvas.height),
-        r:       rand(0.5, 2.0),
+        r:       rand(1.0, 2.8),              // bigger flakes
         dx:      rand(-0.25, 0.25),
-        dy:      rand(0.15, 0.55),
-        opacity: rand(0.12, 0.50),
+        dy:      rand(0.20, 0.60),
+        opacity: rand(0.35, 0.90),            // much brighter
         color:   pick(GOLD_PALE, GOLD_WARM, WHITE)
     }
 }
 
 for (let i = 0; i < SNOW_COUNT; i++) snow.push(makeFlake())
 
-function stepSnow () {
+function stepSnow ()
+{
     snow.forEach(f => {
         f.x += f.dx
         f.y += f.dy
@@ -65,7 +67,8 @@ function stepSnow () {
     })
 }
 
-function drawSnow () {
+function drawSnow ()
+{
     snow.forEach(f => {
         ctx.beginPath()
         ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2)
@@ -75,7 +78,7 @@ function drawSnow () {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  2. FLOWER PETALS — Frieren's Blumen spell
+//  2. FLOWER PETALS — Frieren's Blumen spell (STRONG BLOOM)
 // ═══════════════════════════════════════════════════════════
 const PETAL_COUNT = 28
 const petals = []
@@ -94,38 +97,41 @@ function drawPetal (cx, cy, w, h, angle, color, alpha) {
     ctx.closePath()
 
     const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(w, h) / 2)
-    grad.addColorStop(0,   rgba(WHITE, 0.95))
-    grad.addColorStop(0.4, rgba(color, 0.85))
-    grad.addColorStop(1,   rgba(color, 0.20))
+    grad.addColorStop(0.0, rgba(WHITE, 1.00))        // pure white core
+    grad.addColorStop(0.35, rgba(color, 0.95))       // strong color
+    grad.addColorStop(0.85, rgba(color, 0.35))
+    grad.addColorStop(1.0, rgba(color, 0.00))        // clear edge
     ctx.fillStyle = grad
     ctx.fill()
     ctx.globalAlpha = 1
     ctx.restore()
 }
 
-function makePetal () {
+function makePetal ()
+{
     return {
         x:       rand(0, canvas.width),
-        y:       rand(canvas.height * 0.3, canvas.height + 20),
-        w:       rand(5, 12),
-        h:       rand(9, 22),
+        y:       rand(canvas.height * 0.85, canvas.height + 40), // start near bottom
+        w:       rand(7, 16),
+        h:       rand(14, 28),
         angle:   rand(0, Math.PI * 2),
-        dAngle:  rand(-0.008, 0.008),
-        dx:      rand(-0.35, 0.35),
-        dy:      rand(-0.55, -0.18),   // rises upward
-        opacity: rand(0.30, 0.75),
-        dOpacity: rand(-0.0008, -0.0003),  // slowly fades as it rises
+        dAngle:  rand(-0.010, 0.010),
+        dx:      rand(-0.25, 0.25),
+        dy:      rand(-0.40, -0.15),           // slower upward
+        opacity: rand(0.55, 1.0),              // strong on spawn
+        dOpacity: rand(-0.00035, -0.00015),    // fade much slower
         color:   pick(GOLD, GOLD_WARM, GOLD_PALE, TEAL)
     }
 }
 
 for (let i = 0; i < PETAL_COUNT; i++) {
     const p = makePetal()
-    p.y = rand(0, canvas.height)  // scatter on load
+    p.y = rand(canvas.height * 0.2, canvas.height + 40) // fill from lower 80%
     petals.push(p)
 }
 
-function stepPetals () {
+function stepPetals ()
+{
     petals.forEach(p => {
         p.x     += p.dx
         p.y     += p.dy
@@ -133,7 +139,8 @@ function stepPetals () {
         p.opacity = Math.max(0, p.opacity + p.dOpacity)
 
         // Recycle when off-screen or faded
-        if (p.y < -30 || p.opacity <= 0) {
+        if (p.y < -30 || p.opacity <= 0)
+        {
             Object.assign(p, makePetal())
         }
         if (p.x < -20)              p.x = canvas.width  + 10
@@ -141,85 +148,92 @@ function stepPetals () {
     })
 }
 
-function drawPetals () {
+function drawPetals ()
+{
     petals.forEach(p => {
         drawPetal(p.x, p.y, p.w, p.h, p.angle, p.color, p.opacity)
     })
 }
 
 // ═══════════════════════════════════════════════════════════
-//  3. MAGIC RUNE RINGS
+//  3. MAGIC RUNE RINGS — VIVID GLOW
 // ═══════════════════════════════════════════════════════════
 const rings = []
 const RING_INTERVAL_MS = 3800   // new ring every ~3.8s
 let   lastRingTime = 0
 
-function makeRing () {
+function makeRing ()
+{
     return {
         x:       rand(canvas.width  * 0.15, canvas.width  * 0.85),
         y:       rand(canvas.height * 0.15, canvas.height * 0.85),
         r:       0,
-        maxR:    rand(55, 130),
-        speed:   rand(0.4, 0.8),
-        opacity: 0.55,
-        rings:   randInt(2, 4),       // concentric count
+        maxR:    rand(70, 150),
+        speed:   rand(0.5, 0.9),
+        opacity: 0.90,                         // brighter base
+        rings:   randInt(2, 4),                // concentric count
         color:   pick(GOLD, TEAL, GOLD_WARM),
-        dashes:  randInt(6, 16)       // tick marks on ring
+        dashes:  randInt(8, 18)                // more tick marks
     }
 }
 
-function stepRings (now) {
-    if (now - lastRingTime > RING_INTERVAL_MS) {
+function stepRings (now)
+{
+    if (now - lastRingTime > RING_INTERVAL_MS)
+    {
         rings.push(makeRing())
         lastRingTime = now
     }
 
-    for (let i = rings.length - 1; i >= 0; i--) {
+    for (let i = rings.length - 1; i >= 0; i--)
+    {
         const rng = rings[i]
         rng.r += rng.speed
-        rng.opacity = 0.55 * (1 - rng.r / rng.maxR)
+        rng.opacity = 0.9 * (1 - rng.r / rng.maxR)  // fade from 0.9 → 0
         if (rng.r >= rng.maxR) rings.splice(i, 1)
     }
 }
 
-function drawRings () {
+function drawRings ()
+{
     rings.forEach(rng => {
         for (let k = 0; k < rng.rings; k++) {
             const kr = rng.r * (1 - k * 0.18)
             if (kr <= 0) continue
-            const alpha = rng.opacity * (1 - k * 0.28)
+            const alpha = rng.opacity * (1 - k * 0.20)
 
             ctx.save()
             ctx.translate(rng.x, rng.y)
 
-            // Main ring
+            // Main ring — thicker
             ctx.beginPath()
             ctx.arc(0, 0, kr, 0, Math.PI * 2)
             ctx.strokeStyle = rgba(rng.color, alpha)
-            ctx.lineWidth   = 0.8
+            ctx.lineWidth   = 1.4
             ctx.stroke()
 
-            // Rune tick marks around ring
+            // Rune tick marks around ring — longer
             const ticks = rng.dashes
-            for (let t = 0; t < ticks; t++) {
+            for (let t = 0; t < ticks; t++)
+            {
                 const a  = (t / ticks) * Math.PI * 2
-                const r0 = kr - 3
-                const r1 = kr + 3
+                const r0 = kr - 4
+                const r1 = kr + 4
                 ctx.beginPath()
                 ctx.moveTo(Math.cos(a) * r0, Math.sin(a) * r0)
                 ctx.lineTo(Math.cos(a) * r1, Math.sin(a) * r1)
-                ctx.strokeStyle = rgba(rng.color, alpha * 0.7)
-                ctx.lineWidth   = 0.6
+                ctx.strokeStyle = rgba(rng.color, alpha * 0.9)
+                ctx.lineWidth   = 0.9
                 ctx.stroke()
             }
 
-            // Glow
+            // Glow — stronger
             ctx.beginPath()
             ctx.arc(0, 0, kr, 0, Math.PI * 2)
-            ctx.shadowColor = rgba(rng.color, alpha * 0.9)
-            ctx.shadowBlur  = 8
-            ctx.strokeStyle = rgba(rng.color, alpha * 0.3)
-            ctx.lineWidth   = 2.5
+            ctx.shadowColor = rgba(rng.color, alpha)
+            ctx.shadowBlur  = 14
+            ctx.strokeStyle = rgba(rng.color, alpha * 0.5)
+            ctx.lineWidth   = 3
             ctx.stroke()
             ctx.shadowBlur  = 0
 
@@ -229,54 +243,59 @@ function drawRings () {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  4. SPARKLES — 4-point gold/white twinkles
+//  4. SPARKLES — SHARPER & BRIGHTER
 // ═══════════════════════════════════════════════════════════
-const SPARKLE_COUNT = 22
+const SPARKLE_COUNT = 26
 const sparkles = []
 
 function makeSparkle () {
     return {
         x:      rand(0, canvas.width),
         y:      rand(0, canvas.height),
-        size:   rand(2.5, 6),
+        size:   rand(3.5, 7.5),                // slightly larger
         angle:  rand(0, Math.PI / 4),
-        dAngle: rand(0.005, 0.020),
+        dAngle: rand(0.006, 0.020),
         life:   0,
-        maxLife: rand(90, 200),
+        maxLife: rand(120, 220),               // stays longer
         color:  pick(GOLD_WARM, GOLD, WHITE, GOLD_PALE)
     }
 }
 
-for (let i = 0; i < SPARKLE_COUNT; i++) {
+for (let i = 0; i < SPARKLE_COUNT; i++)
+{
     const s = makeSparkle()
     s.life = randInt(0, s.maxLife)  // stagger starts
     sparkles.push(s)
 }
 
-function draw4Star (cx, cy, size, angle, color, alpha) {
+function draw4Star (cx, cy, size, angle, color, alpha)
+{
     ctx.save()
     ctx.translate(cx, cy)
     ctx.rotate(angle)
     ctx.globalAlpha = alpha
     ctx.beginPath()
     // 4-point star: two overlapping diamond strokes
-    for (let arm = 0; arm < 4; arm++) {
+    for (let arm = 0; arm < 4; arm++)
+    {
         const a = (arm / 4) * Math.PI * 2
         ctx.moveTo(0, 0)
         ctx.lineTo(Math.cos(a) * size, Math.sin(a) * size)
     }
-    ctx.strokeStyle = rgba(color, 0.85)
-    ctx.lineWidth   = 0.9
-    ctx.shadowColor = rgba(color, 0.6)
-    ctx.shadowBlur  = size * 1.8
+    ctx.strokeStyle = rgba(color, 1.0)       // full color
+    ctx.lineWidth   = 1.1
+    ctx.shadowColor = rgba(color, 0.9)
+    ctx.shadowBlur  = size * 2.2
     ctx.stroke()
     ctx.shadowBlur  = 0
     ctx.globalAlpha = 1
     ctx.restore()
 }
 
-function stepSparkles () {
-    sparkles.forEach(s => {
+function stepSparkles ()
+{
+    sparkles.forEach(s =>
+    {
         s.life   += 1
         s.angle  += s.dAngle
         if (s.life >= s.maxLife) {
@@ -287,14 +306,14 @@ function stepSparkles () {
 
 function drawSparkles () {
     sparkles.forEach(s => {
-        const t     = s.life / s.maxLife         // 0 → 1
-        const alpha = Math.sin(t * Math.PI)      // fade in, then out
-        draw4Star(s.x, s.y, s.size, s.angle, s.color, alpha * 0.70)
+        const t     = s.life / s.maxLife
+        const alpha = Math.pow(Math.sin(t * Math.PI), 1.2) // sharper mid
+        draw4Star(s.x, s.y, s.size, s.angle, s.color, alpha * 0.95)
     })
 }
 
 // ═══════════════════════════════════════════════════════════
-//  MAIN LOOP
+//  MAIN LOOP — rings back, petals/sparkles mid, snow front
 // ═══════════════════════════════════════════════════════════
 function loop (now) {
     ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -305,8 +324,8 @@ function loop (now) {
     stepSparkles()
 
     drawRings()     // back layer
-    drawPetals()
-    drawSparkles()
+    drawPetals()    // mid layer
+    drawSparkles()  // mid layer
     drawSnow()      // front layer — delicate on top
 
     requestAnimationFrame(loop)

@@ -98,7 +98,7 @@ html, body
     inset: 0;
     pointer-events: none;
     z-index: 0;
-    opacity: 0.55;
+    opacity: 0.85;
 }
 
 /* ============================================================
@@ -184,20 +184,11 @@ html, body
 {
     0%, 100%
     {
-        box-shadow:
-                0 0 18px var(--gold-glow),
-                0 0 38px rgba(240, 208, 112, 0.22),
-                0 0 70px rgba(240, 208, 112, 0.10),
-                inset 0 1px 3px rgba(255, 255, 255, 0.35);
+        box-shadow: 0 0 18px var(--gold-glow), 0 0 38px rgba(240, 208, 112, 0.22), 0 0 70px rgba(240, 208, 112, 0.10), inset 0 1px 3px rgba(255, 255, 255, 0.35);
     }
     50%
     {
-        box-shadow:
-                0 0 28px var(--gold-glow-hard),
-                0 0 56px rgba(240, 208, 112, 0.35),
-                0 0 100px rgba(240, 208, 112, 0.18),
-                0 0 140px rgba(77, 184, 160, 0.08),
-                inset 0 1px 3px rgba(255, 255, 255, 0.35);
+        box-shadow: 0 0 28px var(--gold-glow-hard), 0 0 56px rgba(240, 208, 112, 0.35), 0 0 100px rgba(240, 208, 112, 0.18), 0 0 140px rgba(77, 184, 160, 0.08), inset 0 1px 3px rgba(255, 255, 255, 0.35);
     }
 }
 
