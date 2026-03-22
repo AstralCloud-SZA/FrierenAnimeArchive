@@ -44,6 +44,10 @@
         <div class="nav-icon">⭐</div>
         <span>Favourites</span>
       </div>
+      <div class="nav-item" data-section="anime">
+        <div class="nav-icon"></div>
+        <span>Watch Anime</span>
+      </div>
     </nav>
 
     <div class="nav-section-label">System</div>
@@ -238,6 +242,29 @@
 
     </div>
     <!-- /#section-favorites -->
+
+    <!-- WATCH ANIME -->
+    <div class="section" id="section-anime">
+      <div class="glass-card">
+        <div class="card-heading">Watch Anime &mdash; 9Anime</div>
+        <div class="card-body">Stream anime directly. Your session is saved between launches.</div>
+      </div>
+      <div class="ddg-toolbar">
+        <button class="header-btn" id="anime-back" title="Back">&#8592;</button>
+        <button class="header-btn" id="anime-forward" title="Forward">&#8594;</button>
+        <button class="header-btn" id="anime-reload" title="Reload">&#8635;</button>
+      </div>
+      <webview
+              id="anime-webview"
+              src="https://9anime.org.lv"
+              partition="persist:anime"
+              useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+              style="width:100%; height:calc(100vh - 200px); min-height:500px; margin-top:12px; border:1px solid var(--border); border-radius:12px; background:#c6d3e8;"
+              allowpopups
+              disablewebsecurity>
+      </webview>
+    </div>
+
 
     <!-- ── SETTINGS ── -->
     <div class="section" id="section-settings">

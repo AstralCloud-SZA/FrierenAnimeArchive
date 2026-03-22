@@ -10,12 +10,13 @@
      5.  MAL search + in-app detail + star/save
      6.  Favourites — render, tabs, remove
      7.  DuckDuckGo in-app webview browser
-     8.  Settings (SFW toggle)
-     9.  Event listeners
-     10. Boot sequence
+     8.  Watch Anime — 9Anime webview
+     9.  Settings (SFW toggle)
+     10. Event listeners
+     11. Boot sequence
 ============================================================ */
 
-const API = window.api   // injected by preload.js
+const API = window.api
 
 // ═══════════════════════════════════════════════════════════
 //  1. DOM REFS
@@ -44,6 +45,10 @@ const ddgWebview     = $('ddg-webview')
 const ddgBack        = $('ddg-back')
 const ddgForward     = $('ddg-forward')
 const ddgReload      = $('ddg-reload')
+const animeWebview   = $('anime-webview')
+const animeBack      = $('anime-back')
+const animeForward   = $('anime-forward')
+const animeReload    = $('anime-reload')
 
 // ═══════════════════════════════════════════════════════════
 //  2. UI HELPERS
@@ -57,7 +62,6 @@ function escHtml (str) {
         .replace(/"/g,  '&quot;')
 }
 
-// Decode escaped JSON back to a plain string for JSON.parse
 function unescHtml (str) {
     return str
         .replace(/&quot;/g, '"')
@@ -109,53 +113,158 @@ function setApiStatus (online) {
 //  4. NEWS — load, in-app reader, star/save
 // ═══════════════════════════════════════════════════════════
 
-// ── News card HTML — with ☆ star save button ─────────────
+// ── News card HTML — MAL-style horizontal layout ──────────
 function newsCardHTML (article) {
-    const date  = article.published_at
+    const date     = article.published_at
         ? new Date(article.published_at).toLocaleDateString('en-ZA', {
             day: 'numeric', month: 'short', year: 'numeric'
         })
         : '—'
     const saved    = isFavArticle(article.url)
     const safeJson = escHtml(JSON.stringify(article))
+    const img      = article.image || article.thumbnail || article.image_url || ''
+    const summary  = article.summary
+        ? escHtml(article.summary.slice(0, 180)) + '…'
+        : '<em style="opacity:0.5;">No summary available.</em>'
 
     return `
     <div class="news-card"
          data-url="${escHtml(article.url || '')}"
          data-article="${safeJson}"
-         style="cursor:pointer;">
-      <div class="news-card-source"
-           style="display:flex;justify-content:space-between;align-items:center;">
-        <span>${escHtml(article.source_name || 'Archive')}</span>
-        <button class="fav-star-btn"
-                data-url="${escHtml(article.url || '')}"
-                title="${saved ? 'Remove from favourites' : 'Save to favourites'}"
-                style="background:none;border:none;cursor:pointer;
-                       font-size:16px;color:var(--gold);
-                       opacity:${saved ? 1 : 0.35};padding:0 2px;">
-          ${saved ? '⭐' : '☆'}
-        </button>
+         style="display:flex;gap:14px;align-items:flex-start;cursor:pointer;">
+      ${img
+        ? `<img src="${escHtml(img)}" alt=""
+               style="width:54px;height:76px;object-fit:cover;
+                      border-radius:6px;flex-shrink:0;opacity:0.90;">`
+        : `<div style="width:54px;height:76px;flex-shrink:0;border-radius:6px;
+                       background:var(--border);display:flex;align-items:center;
+                       justify-content:center;font-size:22px;opacity:0.4;">📰</div>`}
+      <div style="flex:1;min-width:0;">
+        <div class="news-card-source"
+             style="display:flex;justify-content:space-between;align-items:center;">
+          <span>${escHtml(article.source_name || 'Archive')} · ${date}</span>
+          <button class="fav-star-btn"
+                  data-url="${escHtml(article.url || '')}"
+                  title="${saved ? 'Remove from favourites' : 'Save to favourites'}"
+                  style="background:none;border:none;cursor:pointer;
+                         font-size:16px;color:var(--gold);
+                         opacity:${saved ? 1 : 0.35};padding:0 2px;">
+            ${saved ? '⭐' : '☆'}
+          </button>
+        </div>
+        <div class="news-card-title">${escHtml(article.title || 'Untitled')}</div>
+        <div class="news-card-summary">${summary}</div>
       </div>
-      <div class="news-card-title">${escHtml(article.title || 'Untitled')}</div>
-      <div class="news-card-summary">${escHtml(article.summary || '')}</div>
-      <div class="news-card-time">${date}</div>
     </div>`
 }
 
-// ── In-app article reader ─────────────────────────────────
-function openArticleInApp (url, title) {
-    if (!url) return
-    newsList.style.display        = 'none'
-    newsReader.style.display      = 'block'
-    newsReaderTitle.textContent   = title || 'Article'
-    newsWebview.src               = url
-}
+// ── News reader helpers ───────────────────────────────────
+const newsReaderOrigCard = () => newsReader.querySelector('.glass-card')
 
-newsReaderBack.addEventListener('click', () => {
+function closeNewsDetail () {
+    const orig = newsReaderOrigCard()
+    if (orig) orig.style.display = ''
     newsReader.style.display  = 'none'
+    newsWebview.style.display = ''
     newsList.style.display    = 'block'
     newsWebview.src           = 'about:blank'
-})
+    const old = $('news-native-detail')
+    if (old) old.remove()
+}
+
+// ── In-app native article detail ─────────────────────────
+function showArticleDetail (article) {
+    const date = article.published_at
+        ? new Date(article.published_at).toLocaleDateString('en-ZA', {
+            day: 'numeric', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        })
+        : '—'
+    const img = article.image || article.thumbnail || article.image_url || ''
+
+    // Hide original webview header card, hide the webview itself
+    const orig = newsReaderOrigCard()
+    if (orig) orig.style.display = 'none'
+    newsWebview.style.display = 'none'
+    newsWebview.src           = 'about:blank'
+
+    newsList.style.display   = 'none'
+    newsReader.style.display = 'block'
+
+    const old = $('news-native-detail')
+    if (old) old.remove()
+
+    const detail = document.createElement('div')
+    detail.id = 'news-native-detail'
+    detail.innerHTML = `
+    <div class="glass-card" style="margin-top:12px;">
+      <div class="card-heading"
+           style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <span id="news-detail-back"
+              style="font-size:14px;opacity:0.65;cursor:pointer;
+                     letter-spacing:0.1em;transition:opacity 0.2s;"
+              onmouseover="this.style.opacity=1"
+              onmouseout="this.style.opacity=0.65">← Back to News</span>
+        <span style="flex:1;">${escHtml(article.title || 'Article')}</span>
+      </div>
+
+      <div class="card-body">
+        <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;">
+          ${img ? `
+          <img src="${escHtml(img)}" alt=""
+               style="width:160px;height:220px;object-fit:cover;border-radius:10px;
+                      border:1px solid var(--border);flex-shrink:0;
+                      box-shadow:0 8px 32px rgba(0,0,0,0.5);">` : ''}
+          <div style="flex:1;min-width:200px;">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+              <span class="badge">${escHtml(article.source_name || 'Archive')}</span>
+              <span class="badge">${escHtml(date)}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Source</span>
+              <span>${escHtml(article.source_name || '—')}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Published</span>
+              <span>${escHtml(date)}</span>
+            </div>
+            <div class="detail-row" style="align-items:flex-start;">
+              <span class="detail-label">Link</span>
+              <span style="word-break:break-all;font-size:13px;opacity:0.6;">
+                ${escHtml(article.url || '—')}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:24px;font-size:17px;line-height:1.9;
+                    color:var(--text-mid);border-top:1px solid var(--border);
+                    padding-top:20px;">
+          ${escHtml(article.summary || 'No summary available.')}
+        </div>
+
+        <div style="margin-top:24px;">
+          <button class="search-btn" id="news-open-external"
+                  style="font-size:14px;padding:10px 22px;">
+            🔗 Read Full Article on ${escHtml(article.source_name || 'Source')}
+          </button>
+        </div>
+      </div>
+    </div>`
+
+    newsReader.appendChild(detail)
+
+    $('news-detail-back').addEventListener('click', () => closeNewsDetail())
+
+    $('news-open-external').addEventListener('click', () => {
+        window.navigateTo('search')
+        ddgWebview.src = article.url
+        ddgInput.value = article.title || ''
+    })
+}
+
+// ── Original back button (fallback) ──────────────────────
+newsReaderBack.addEventListener('click', () => closeNewsDetail())
 
 // ── Health check ──────────────────────────────────────────
 async function checkHealth () {
@@ -174,7 +283,6 @@ async function loadNews () {
     btnNews.disabled    = true
     btnNews.textContent = 'Loading…'
 
-    // Make sure reader is hidden when reloading
     newsReader.style.display = 'none'
     newsList.style.display   = 'block'
 
@@ -199,7 +307,6 @@ async function loadNews () {
         } else {
             newsList.innerHTML = articles.map(newsCardHTML).join('')
 
-            // ⭐ Star buttons — save/unsave article
             newsList.querySelectorAll('.fav-star-btn').forEach(btn => {
                 btn.addEventListener('click', e => {
                     e.stopPropagation()
@@ -207,23 +314,25 @@ async function loadNews () {
                         const card    = btn.closest('.news-card')
                         const article = JSON.parse(unescHtml(card.dataset.article))
                         toggleFavArticle(article)
-                        const now       = isFavArticle(article.url)
-                        btn.textContent = now ? '⭐' : '☆'
+                        const now         = isFavArticle(article.url)
+                        btn.textContent   = now ? '⭐' : '☆'
                         btn.style.opacity = now ? '1' : '0.35'
-                        btn.title = now ? 'Remove from favourites' : 'Save to favourites'
+                        btn.title         = now ? 'Remove from favourites' : 'Save to favourites'
                     } catch (err) {
                         console.error('[Star] article parse error:', err)
                     }
                 })
             })
 
-            // Card click → open in-app reader
             newsList.querySelectorAll('.news-card').forEach(card => {
                 card.addEventListener('click', e => {
                     if (e.target.classList.contains('fav-star-btn')) return
-                    const url   = card.dataset.url
-                    const title = card.querySelector('.news-card-title')?.textContent || 'Article'
-                    if (url) openArticleInApp(url, title)
+                    try {
+                        const article = JSON.parse(unescHtml(card.dataset.article))
+                        showArticleDetail(article)
+                    } catch (err) {
+                        console.error('[News] card parse error:', err)
+                    }
                 })
             })
         }
@@ -238,7 +347,6 @@ async function loadNews () {
 //  5. MAL SEARCH + IN-APP DETAIL + STAR/SAVE
 // ═══════════════════════════════════════════════════════════
 
-// ── MAL search result card — with ☆ star save button ─────
 function malCardHTML (anime) {
     const score    = anime.score    ? `⭐ ${anime.score}`       : ''
     const eps      = anime.episodes ? `· ${anime.episodes} eps` : ''
@@ -258,8 +366,8 @@ function malCardHTML (anime) {
          style="display:flex;gap:14px;align-items:flex-start;cursor:pointer;">
       ${img
         ? `<img src="${escHtml(img)}" alt=""
-             style="width:54px;height:76px;object-fit:cover;
-                    border-radius:6px;flex-shrink:0;opacity:0.90;">`
+               style="width:54px;height:76px;object-fit:cover;
+                      border-radius:6px;flex-shrink:0;opacity:0.90;">`
         : ''}
       <div style="flex:1;min-width:0;">
         <div class="news-card-source"
@@ -281,7 +389,6 @@ function malCardHTML (anime) {
     </div>`
 }
 
-// ── MAL in-app detail view ────────────────────────────────
 function showAnimeDetail (anime) {
     const img     = anime.images?.jpg?.large_image_url
         || anime.images?.jpg?.image_url || ''
@@ -297,7 +404,6 @@ function showAnimeDetail (anime) {
 
     malOutput.innerHTML = `
     <div class="glass-card">
-
       <div class="card-heading"
            style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
         <span id="mal-back"
@@ -316,15 +422,13 @@ function showAnimeDetail (anime) {
       </div>
 
       <div class="card-body">
-
         <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;">
           ${img
         ? `<img src="${escHtml(img)}" alt="${escHtml(anime.title || '')}"
-                 style="width:170px;height:240px;object-fit:cover;
-                        border-radius:10px;border:1px solid var(--border);
-                        flex-shrink:0;box-shadow:0 8px 32px rgba(0,0,0,0.5);">`
+                   style="width:170px;height:240px;object-fit:cover;
+                          border-radius:10px;border:1px solid var(--border);
+                          flex-shrink:0;box-shadow:0 8px 32px rgba(0,0,0,0.5);">`
         : ''}
-
           <div style="flex:1;min-width:200px;">
             <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
               <span class="badge">${escHtml(anime.type || 'Anime')}</span>
@@ -377,25 +481,21 @@ function showAnimeDetail (anime) {
             allow="autoplay; encrypted-media">
           </iframe>
         </div>` : ''}
-
       </div>
     </div>`
 
-    // Back → re-run last search
     $('mal-back').addEventListener('click', () => searchMAL(malInput.value))
 
-    // ⭐ Star on detail page
     $('detail-star-btn').addEventListener('click', () => {
         toggleFavAnime(anime)
         const now = isFavAnime(anime.mal_id)
         const btn = $('detail-star-btn')
-        btn.textContent  = now ? '⭐' : '☆'
-        btn.style.opacity= now ? '1' : '0.4'
-        btn.title = now ? 'Remove from favourites' : 'Save to favourites'
+        btn.textContent   = now ? '⭐' : '☆'
+        btn.style.opacity = now ? '1' : '0.4'
+        btn.title         = now ? 'Remove from favourites' : 'Save to favourites'
     })
 }
 
-// ── MAL search ────────────────────────────────────────────
 async function searchMAL (query) {
     if (!query.trim()) return
     if (malEmpty) malEmpty.style.display = 'none'
@@ -428,24 +528,21 @@ async function searchMAL (query) {
             `<div class="news-list">${list.map(malCardHTML).join('')}</div>`
 
         malOutput.querySelectorAll('.mal-card').forEach(card => {
-
-            // ⭐ Star button
             card.querySelector('.fav-star-btn')?.addEventListener('click', e => {
                 e.stopPropagation()
                 try {
-                    const anime = JSON.parse(unescHtml(card.dataset.anime))
+                    const anime       = JSON.parse(unescHtml(card.dataset.anime))
                     toggleFavAnime(anime)
-                    const now       = isFavAnime(anime.mal_id)
-                    const btn       = e.currentTarget
-                    btn.textContent = now ? '⭐' : '☆'
+                    const now         = isFavAnime(anime.mal_id)
+                    const btn         = e.currentTarget
+                    btn.textContent   = now ? '⭐' : '☆'
                     btn.style.opacity = now ? '1' : '0.35'
-                    btn.title = now ? 'Remove from favourites' : 'Save to favourites'
+                    btn.title         = now ? 'Remove from favourites' : 'Save to favourites'
                 } catch (err) {
                     console.error('[Star] anime parse error:', err)
                 }
             })
 
-            // Card click → in-app detail
             card.addEventListener('click', async e => {
                 if (e.target.classList.contains('fav-star-btn')) return
                 const id = card.dataset.malId
@@ -477,8 +574,8 @@ async function searchMAL (query) {
 const FAV_ANIME_KEY    = 'fav_anime'
 const FAV_ARTICLES_KEY = 'fav_articles'
 
-function getFavAnime ()    { return JSON.parse(localStorage.getItem(FAV_ANIME_KEY)    || '[]') }
-function getFavArticles () { return JSON.parse(localStorage.getItem(FAV_ARTICLES_KEY) || '[]') }
+function getFavAnime ()      { return JSON.parse(localStorage.getItem(FAV_ANIME_KEY)    || '[]') }
+function getFavArticles ()   { return JSON.parse(localStorage.getItem(FAV_ARTICLES_KEY) || '[]') }
 function saveFavAnime (l)    { localStorage.setItem(FAV_ANIME_KEY,    JSON.stringify(l)) }
 function saveFavArticles (l) { localStorage.setItem(FAV_ARTICLES_KEY, JSON.stringify(l)) }
 function isFavAnime (mal_id) { return getFavAnime().some(a => String(a.mal_id) === String(mal_id)) }
@@ -486,11 +583,9 @@ function isFavArticle (url)  { return getFavArticles().some(a => a.url === url) 
 
 function toggleFavAnime (anime) {
     let list = getFavAnime()
-    if (isFavAnime(anime.mal_id))
-    {
+    if (isFavAnime(anime.mal_id)) {
         list = list.filter(a => String(a.mal_id) !== String(anime.mal_id))
-    } else
-    {
+    } else {
         list.push({
             mal_id:   anime.mal_id,
             title:    anime.title,
@@ -532,38 +627,38 @@ function renderFavourites () {
     const anime    = getFavAnime()
     const articles = getFavArticles()
 
-    // ── Saved anime ─────────────────────────────────────────
+    // ── Saved anime ──────────────────────────────────────────
     if (anime.length === 0) {
         animeEmpty.style.display = 'block'
         animeList.innerHTML      = ''
     } else {
         animeEmpty.style.display = 'none'
         animeList.innerHTML = anime.map(a => `
-      <div class="news-card mal-card"
-           data-mal-id="${a.mal_id}"
-           style="display:flex;gap:14px;align-items:flex-start;cursor:pointer;">
-        ${a.image
+        <div class="news-card mal-card"
+             data-mal-id="${a.mal_id}"
+             style="display:flex;gap:14px;align-items:flex-start;cursor:pointer;">
+          ${a.image
             ? `<img src="${escHtml(a.image)}" alt=""
-               style="width:54px;height:76px;object-fit:cover;
-                      border-radius:6px;flex-shrink:0;opacity:0.90;">`
+                   style="width:54px;height:76px;object-fit:cover;
+                          border-radius:6px;flex-shrink:0;opacity:0.90;">`
             : ''}
-        <div style="flex:1;min-width:0;">
-          <div class="news-card-source">
-            ${escHtml(a.type || 'Anime')}
-            ${a.episodes ? `· ${a.episodes} eps` : ''}
-            ${a.score    ? `⭐ ${a.score}`       : ''}
+          <div style="flex:1;min-width:0;">
+            <div class="news-card-source">
+              ${escHtml(a.type || 'Anime')}
+              ${a.episodes ? `· ${a.episodes} eps` : ''}
+              ${a.score    ? `⭐ ${a.score}`       : ''}
+            </div>
+            <div class="news-card-title">${escHtml(a.title || '')}</div>
+            <div class="news-card-time">${escHtml(a.status || '')}</div>
           </div>
-          <div class="news-card-title">${escHtml(a.title || '')}</div>
-          <div class="news-card-time">${escHtml(a.status || '')}</div>
-        </div>
-        <button class="fav-remove-btn" data-mal-id="${a.mal_id}"
-                title="Remove from favourites"
-                style="background:none;border:none;cursor:pointer;
-                       color:var(--gold);font-size:18px;opacity:0.55;
-                       flex-shrink:0;align-self:center;"
-                onmouseover="this.style.opacity=1"
-                onmouseout="this.style.opacity=0.55">✕</button>
-      </div>`).join('')
+          <button class="fav-remove-btn" data-mal-id="${a.mal_id}"
+                  title="Remove from favourites"
+                  style="background:none;border:none;cursor:pointer;
+                         color:var(--gold);font-size:18px;opacity:0.55;
+                         flex-shrink:0;align-self:center;"
+                  onmouseover="this.style.opacity=1"
+                  onmouseout="this.style.opacity=0.55">✕</button>
+        </div>`).join('')
 
         animeList.querySelectorAll('.fav-remove-btn').forEach(btn => {
             btn.addEventListener('click', e => {
@@ -599,22 +694,23 @@ function renderFavourites () {
                     { day: 'numeric', month: 'short', year: 'numeric' })
                 : '—'
             return `
-        <div class="news-card"
-             data-url="${escHtml(a.url || '')}"
-             style="cursor:pointer;">
-          <div class="news-card-source">${escHtml(a.source_name || 'ANN')}</div>
-          <div class="news-card-title">${escHtml(a.title || '')}</div>
-          <div class="news-card-summary">${escHtml(a.summary || '')}</div>
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div class="news-card-time">${date}</div>
-            <button class="fav-remove-btn"
-                    data-url="${escHtml(a.url)}"
-                    style="background:none;border:none;cursor:pointer;
-                           color:var(--gold);font-size:18px;opacity:0.55;"
-                    onmouseover="this.style.opacity=1"
-                    onmouseout="this.style.opacity=0.55">✕</button>
-          </div>
-        </div>`
+            <div class="news-card"
+                 data-url="${escHtml(a.url || '')}"
+                 data-article="${escHtml(JSON.stringify(a))}"
+                 style="cursor:pointer;">
+              <div class="news-card-source">${escHtml(a.source_name || 'ANN')}</div>
+              <div class="news-card-title">${escHtml(a.title || '')}</div>
+              <div class="news-card-summary">${escHtml(a.summary || '')}</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div class="news-card-time">${date}</div>
+                <button class="fav-remove-btn"
+                        data-url="${escHtml(a.url)}"
+                        style="background:none;border:none;cursor:pointer;
+                               color:var(--gold);font-size:18px;opacity:0.55;"
+                        onmouseover="this.style.opacity=1"
+                        onmouseout="this.style.opacity=0.55">✕</button>
+              </div>
+            </div>`
         }).join('')
 
         articlesList.querySelectorAll('.fav-remove-btn').forEach(btn => {
@@ -625,12 +721,17 @@ function renderFavourites () {
             })
         })
 
+        // ✅ FIXED: was calling removed openArticleInApp — now uses showArticleDetail
         articlesList.querySelectorAll('.news-card').forEach(card => {
             card.addEventListener('click', e => {
                 if (e.target.classList.contains('fav-remove-btn')) return
-                const title = card.querySelector('.news-card-title')?.textContent || 'Article'
-                window.navigateTo('news')
-                openArticleInApp(card.dataset.url, title)
+                try {
+                    const article = JSON.parse(unescHtml(card.dataset.article))
+                    window.navigateTo('news')
+                    showArticleDetail(article)
+                } catch (err) {
+                    console.error('[Fav] article parse error:', err)
+                }
             })
         })
     }
@@ -648,7 +749,6 @@ document.querySelectorAll('.fav-tab').forEach(tab => {
 
 // ═══════════════════════════════════════════════════════════
 //  7. DUCKDUCKGO — full in-app webview
-//     kp=-2 safe search OFF · kae=d dark · k1=-1 no ads
 // ═══════════════════════════════════════════════════════════
 
 function ddgSearch (query) {
@@ -671,7 +771,26 @@ if (ddgWebview) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  8. SETTINGS — SFW TOGGLE
+//  8. WATCH ANIME — 9Anime in-app webview
+// ═══════════════════════════════════════════════════════════
+
+if (animeWebview) {
+    animeBack.addEventListener('click',    () => animeWebview.goBack())
+    animeForward.addEventListener('click', () => animeWebview.goForward())
+    animeReload.addEventListener('click',  () => animeWebview.reload())
+
+    animeWebview.addEventListener('did-navigate', e => {
+        console.log('[9Anime] navigated to:', e.url)
+    })
+
+    animeWebview.addEventListener('did-fail-load', e => {
+        if (e.errorCode === -3) return
+        console.warn('[9Anime] load failed:', e.errorDescription)
+    })
+}
+
+// ═══════════════════════════════════════════════════════════
+//  9. SETTINGS — SFW TOGGLE
 // ═══════════════════════════════════════════════════════════
 
 if (sfwToggle) {
@@ -683,10 +802,9 @@ if (sfwToggle) {
 }
 
 // ═══════════════════════════════════════════════════════════
-//  9. EVENT LISTENERS
+//  10. EVENT LISTENERS
 // ═══════════════════════════════════════════════════════════
 
-// Global search → DDG webview
 globalSearch.addEventListener('keydown', e => {
     if (e.key !== 'Enter') return
     const q = globalSearch.value.trim()
@@ -710,7 +828,6 @@ malInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') searchMAL(malInput.value)
 })
 
-// Ctrl+K → focus global search
 document.addEventListener('keydown', e => {
     if (e.ctrlKey && e.key === 'k') {
         e.preventDefault()
@@ -718,13 +835,13 @@ document.addEventListener('keydown', e => {
     }
 })
 
-// IPC nav — Ctrl+1…5 from main.js
+// ✅ FIXED: duplicate onNav block removed — only one remains
 if (window.api?.onNav) {
     window.api.onNav(section => window.navigateTo(section))
 }
 
 // ═══════════════════════════════════════════════════════════
-//  10. BOOT SEQUENCE
+//  11. BOOT SEQUENCE
 // ═══════════════════════════════════════════════════════════
 ;(async () => {
     setApiStatus(false)
