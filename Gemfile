@@ -10,26 +10,23 @@ gem "puma", ">= 5.0"
 gem "faraday", "~> 2.9"
 gem "faraday-retry", "~> 2.2"
 gem "feedjira", "~> 3.0"        # ANN RSS news feed
-gem "active_model_serializers"
-
-# JSON API responses
-gem "jbuilder"
+gem "http", "~> 5.2"            # HTTP client for NewsFetcher RSS fetch
 
 # CORS — Electron dev + production
 gem "rack-cors"
 
-# Background jobs — auto-refresh news
-gem "solid_queue"                # Rails 8 native (you have it!)
+# Background jobs — Rails 8 native
+gem "solid_queue"
+gem "solid_cache"
+gem "solid_cable"
 
 # Environment (.env)
 gem "dotenv-rails"
 
 # ═══════════════════════════════════════════════════════════
-# Rails 8 Production Stack (KEEP ALL)
+# Rails 8 Production Stack
 # ═══════════════════════════════════════════════════════════
 gem "tzinfo-data", platforms: %i[ windows jruby ]
-gem "solid_cache"
-gem "solid_cable"
 gem "bootsnap", require: false
 gem "kamal", require: false
 gem "thruster", require: false
@@ -41,5 +38,3 @@ group :development, :test do
   gem "brakeman", require: false
   gem "rubocop-rails-omakase", require: false
 end
-
-# Remove sidekiq — Solid Queue is better for Rails 8!

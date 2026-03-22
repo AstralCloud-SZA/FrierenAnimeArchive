@@ -1,16 +1,16 @@
-# app/controllers/api/anime/search_controller.rb
 module Api
   module Anime
     class SearchController < ApplicationController
       def index
         query = params[:q]&.strip
-        if query.blank?
-          render json: { error: 'Query parameter "q" required' }, status: :bad_request
-          return
-        end
+        return render json: { error: 'Query required' }, status: :bad_request if query.blank?
 
-        results = JikanClient.search_anime(query, limit: 15)
-        render json: results
+        # search_anime returns array directly now
+        results = JikanClient.search_anime(query, 15)
+        render json: { data: results }
+      rescue => e
+        Rails.logger.error "Anime search error: #{e.message}"
+        render json: { error: 'Jikan unavailable', data: [] }, status: :service_unavailable
       end
     end
   end
