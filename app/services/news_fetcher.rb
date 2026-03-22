@@ -61,7 +61,8 @@ class NewsFetcher
 
     if uri.scheme == "https"
       http.use_ssl     = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_NONE   # Windows fix
+      http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      http.cert_store  = build_cert_store
     end
 
     http.open_timeout = 10
@@ -86,6 +87,37 @@ class NewsFetcher
   rescue => e
     Rails.logger.error "fetch_with_redirects error: #{e.message}"
     nil
+  end
+
+  # Builds a cert store that works on both Windows and Linux/macOS
+  def self.build_cert_store
+    store = OpenSSL::X509::Store.new
+    store.set_default_paths  # uses system certs on Linux/macOS
+
+    # On Windows, system certs aren't auto-loaded — pull from the Windows ROOT store
+    if Gem.win_platform?
+      require "win32/registry"
+      [
+        "ROOT",
+        "CA"
+      ].each do |store_name|
+        Win32::Registry::HKEY_LOCAL_MACHINE.open(
+          "SOFTWARE\\Microsoft\\SystemCertificates\\#{store_name}\\Certificates"
+        ) do |reg|
+          reg.each_key do |thumbprint|
+            reg.open(thumbprint) do |cert_reg|
+              der = cert_reg["Blob"] rescue next
+              cert = OpenSSL::X509::Certificate.new(der) rescue next
+              store.add_cert(cert) rescue nil
+            end
+          end
+        end
+      rescue Win32::Registry::Error
+        next
+      end
+    end
+
+    store
   end
 
   def self.clean_html(html)
