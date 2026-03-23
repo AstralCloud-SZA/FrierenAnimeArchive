@@ -490,7 +490,7 @@ function malCardHTML (anime)
 function showAnimeDetail (anime)
 {
     const img     = anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || ''
-    const score   = anime.score    ? `⭐ ${anime.score}`     : 'N/A'
+    const score   = anime.score    ? `⭐ ${anime.score}`      : 'N/A'
     const eps     = anime.episodes ? `${anime.episodes} eps` : '?'
     const status  = anime.status   || '—'
     const aired   = anime.aired?.string || '—'
@@ -500,12 +500,9 @@ function showAnimeDetail (anime)
     const trailer = anime.trailer?.embed_url || null
     const saved   = isFavAnime(anime.mal_id)
 
-    const videoId  = trailer?.match(/embed\/([^?&/]+)/)?.[1] || null
-    // youtube-nocookie embed avoids login walls and region redirects
-    const embedUrl = videoId ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1` : null
+    // Extract video ID from Jikan embed URL
+    const videoId = trailer?.match(/embed\/([^?&/]+)/)?.[1] || null
 
-    // ── Trailer is a SIBLING of glass-card, NOT inside it ──
-    // glass-card has overflow:hidden which clips native webviews
     malOutput.innerHTML = `
     <div class="glass-card">
       <div class="card-heading"
@@ -575,34 +572,27 @@ function showAnimeDetail (anime)
                     line-height:1.85;color:var(--silver-Kawaii);">
           ${escHtml(syn)}
         </div>
-      </div>
-    </div>
 
-    ${embedUrl ? `
-    <div style="margin-top:18px;margin-bottom:18px;">
-      <div class="card-heading" style="font-size:15px;margin-bottom:12px;padding:0 4px;">
-        🎬 Trailer
+        ${videoId ? `
+        <div style="margin-top:24px;">
+          <div class="card-heading" style="font-size:15px;margin-bottom:12px;">
+            🎬 Trailer
+          </div>
+          <div style="width:100%;height:480px;border-radius:10px;
+                      border:1px solid var(--border);overflow:hidden;
+                      background:#000;">
+            <iframe
+              src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1"
+              title="YouTube trailer"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen
+              style="width:100%;height:100%;border:0;border-radius:10px;">
+            </iframe>
+          </div>
+        </div>` : ''}
       </div>
-      <div id="trailer-mount"
-           style="width:100%;height:480px;border-radius:10px;
-                  border:1px solid var(--border);background:#000;
-                  display:block;overflow:visible;">
-      </div>
-    </div>` : ''}`
-
-    // ── Webview appended after innerHTML settles ──
-    // Uses embed URL on youtube-nocookie — avoids login walls + region locks
-    if (embedUrl)
-    {
-        const wv = document.createElement('webview')
-        wv.src       = embedUrl
-        wv.partition = 'persist:trailers'
-        wv.setAttribute('useragent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-        wv.setAttribute('allowpopups', '')
-        wv.style.cssText = 'width:100%;height:480px;display:block;border-radius:10px;'
-        const mount = $('trailer-mount')
-        if (mount) mount.appendChild(wv)
-    }
+    </div>`
 
     $('mal-back').addEventListener('click', () => searchMAL(malInput.value))
 
@@ -616,7 +606,6 @@ function showAnimeDetail (anime)
         btn.title         = now ? 'Remove from favourites' : 'Save to favourites'
     })
 }
-
 
 async function searchMAL (query)
 {
