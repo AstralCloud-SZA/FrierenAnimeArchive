@@ -501,7 +501,8 @@ function showAnimeDetail (anime)
     const saved   = isFavAnime(anime.mal_id)
 
     // Extract video ID from Jikan embed URL
-    const videoId = trailer?.match(/embed\/([^?&/]+)/)?.[1] || null
+    const videoId  = trailer?.match(/embed\/([^?&/]+)/)?.[1] || null
+    const watchUrl = videoId ? `https://www.youtube.com/watch?v=${videoId}` : null
 
     malOutput.innerHTML = `
     <div class="glass-card">
@@ -573,22 +574,24 @@ function showAnimeDetail (anime)
           ${escHtml(syn)}
         </div>
 
-        ${videoId ? `
+        ${watchUrl ? `
         <div style="margin-top:24px;">
           <div class="card-heading" style="font-size:15px;margin-bottom:12px;">
             🎬 Trailer
           </div>
-          <div style="width:100%;height:480px;border-radius:10px;
-                      border:1px solid var(--border);overflow:hidden;
-                      background:#000;">
-            <iframe
-              src="https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1"
-              title="YouTube trailer"
-              frameborder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowfullscreen
-              style="width:100%;height:100%;border:0;border-radius:10px;">
-            </iframe>
+          <div style="width:100%;border-radius:10px;
+                      border:1px solid var(--border);padding:20px;
+                      display:flex;flex-direction:column;align-items:center;
+                      justify-content:center;gap:12px;background:#020408;">
+            <div style="font-size:42px;">▶</div>
+            <button id="trailer-open-btn"
+                    class="search-btn"
+                    style="font-size:14px;padding:10px 26px;letter-spacing:0.12em;">
+              Watch trailer on YouTube
+            </button>
+            <div style="font-size:12px;opacity:0.5;letter-spacing:0.08em;">
+              Opens in your browser
+            </div>
           </div>
         </div>` : ''}
       </div>
@@ -605,8 +608,17 @@ function showAnimeDetail (anime)
         btn.style.opacity = now ? '1' : '0.4'
         btn.title         = now ? 'Remove from favourites' : 'Save to favourites'
     })
-}
 
+    if (watchUrl && window.api?.openExternal) {
+        const btn = $('trailer-open-btn')
+        if (btn) {
+            btn.addEventListener('click', () =>
+            {
+                window.api.openExternal(watchUrl)
+            })
+        }
+    }
+}
 async function searchMAL (query)
 {
     if (!query.trim()) return
