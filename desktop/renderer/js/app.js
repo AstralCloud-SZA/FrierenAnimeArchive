@@ -239,6 +239,7 @@ async function showArticleDetail (article)
                     align-items:flex-start;margin-bottom:24px;">
           ${img ? `
           <img src="${escHtml(img)}" alt=""
+               referrerpolicy="no-referrer"
                style="width:160px;height:220px;object-fit:cover;border-radius:10px;
                       border:1px solid var(--border);flex-shrink:0;
                       box-shadow:0 8px 32px rgba(0,0,0,0.5);">` : ''}
@@ -264,6 +265,7 @@ async function showArticleDetail (article)
           ${plainToHtml(result.data.content)}
         </div>`
 
+        // Intercept links — open in DDG webview
         detail.querySelectorAll('.article-full-content a').forEach(a => {
             a.addEventListener('click', e => {
                 e.preventDefault()
@@ -276,11 +278,24 @@ async function showArticleDetail (article)
             })
         })
 
-        detail.querySelectorAll('.article-full-content img').forEach(img => {
-            img.style.maxWidth     = '100%'
-            img.style.borderRadius = '8px'
-            img.style.margin       = '12px 0'
-            img.onerror            = () => img.remove()
+        // Fix images — no-referrer so CDNs don't block hotlinks, placeholder on error
+        detail.querySelectorAll('.article-full-content img').forEach(el => {
+            el.style.maxWidth     = '100%'
+            el.style.borderRadius = '8px'
+            el.style.margin       = '12px 0'
+            el.style.display      = 'block'
+            el.setAttribute('referrerpolicy', 'no-referrer')
+            el.onerror = () => {
+                el.style.display = 'none'
+                const placeholder = document.createElement('div')
+                placeholder.style.cssText = `
+                    width:100%;height:80px;border-radius:8px;margin:12px 0;
+                    background:var(--glass);border:1px solid var(--border);
+                    display:flex;align-items:center;justify-content:center;
+                    font-size:13px;color:var(--text-dim);letter-spacing:0.08em;`
+                placeholder.textContent = '🖼  Image unavailable'
+                el.parentNode?.insertBefore(placeholder, el.nextSibling)
+            }
         })
 
     }
@@ -291,6 +306,7 @@ async function showArticleDetail (article)
                     align-items:flex-start;margin-bottom:24px;">
           ${img ? `
           <img src="${escHtml(img)}" alt=""
+               referrerpolicy="no-referrer"
                style="width:160px;height:220px;object-fit:cover;border-radius:10px;
                       border:1px solid var(--border);flex-shrink:0;
                       box-shadow:0 8px 32px rgba(0,0,0,0.5);">` : ''}
@@ -431,8 +447,8 @@ function malCardHTML (anime)
     const eps      = anime.episodes ? `· ${anime.episodes} eps` : ''
     const status   = anime.status   || ''
     const synopsis = anime.synopsis ? escHtml(anime.synopsis.slice(0, 180)) + '…' : '<em style="opacity:0.5;">No synopsis available.</em>'
-    const img             = anime.images?.jpg?.image_url || anime.images?.webp?.image_url || ''
-    const saved           = isFavAnime(anime.mal_id)
+    const img      = anime.images?.jpg?.image_url || anime.images?.webp?.image_url || ''
+    const saved    = isFavAnime(anime.mal_id)
     const safeJson = escHtml(JSON.stringify(anime))
 
     return `
@@ -467,18 +483,18 @@ function malCardHTML (anime)
 
 function showAnimeDetail (anime)
 {
-    const img            = anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || ''
+    const img     = anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || ''
     const score   = anime.score    ? `⭐ ${anime.score}`     : 'N/A'
     const eps     = anime.episodes ? `${anime.episodes} eps` : '?'
     const status  = anime.status   || '—'
-    const aired          = anime.aired?.string || '—'
-    const genres         = anime.genres?.map(g => g.name).join(', ')  || '—'
-    const studios        = anime.studios?.map(s => s.name).join(', ') || '—'
-    const syn            = anime.synopsis || 'No synopsis available.'
-    const trailer        = anime.trailer?.embed_url || null
-    const saved          = isFavAnime(anime.mal_id)
+    const aired   = anime.aired?.string || '—'
+    const genres  = anime.genres?.map(g => g.name).join(', ')  || '—'
+    const studios = anime.studios?.map(s => s.name).join(', ') || '—'
+    const syn     = anime.synopsis || 'No synopsis available.'
+    const trailer = anime.trailer?.embed_url || null
+    const saved   = isFavAnime(anime.mal_id)
 
-    // Extract video ID from Jikan embed URL (youtube.com/embed/ID)
+    // Extract video ID from Jikan embed URL — watch page avoids Error 153
     const videoId  = trailer?.match(/embed\/([^?&/]+)/)?.[1] || null
     const watchUrl = videoId ? `https://www.youtube.com/watch?v=${videoId}` : null
 
@@ -557,22 +573,24 @@ function showAnimeDetail (anime)
             🎬 Trailer
           </div>
           <div id="trailer-mount"
-               style="width:100%;height:420px;border-radius:10px;
-                      border:1px solid var(--border);overflow:hidden;">
+               style="width:100%;height:480px;border-radius:10px;
+                      border:1px solid var(--border);overflow:hidden;
+                      position:relative;">
           </div>
         </div>` : ''}
       </div>
     </div>`
 
-    // ── Trailer — createElement required, innerHTML webviews are ignored by Electron
-    // ── Load full watch page, not embed URL — embed URLs always give Error 153
-    if (watchUrl) {
+    // ── Trailer — createElement required, innerHTML webviews ignored by Electron
+    // ── Watch page URL used — embed URLs always trigger Error 153
+    if (watchUrl)
+    {
         const wv = document.createElement('webview')
         wv.src       = watchUrl
         wv.partition = 'persist:trailers'
         wv.setAttribute('useragent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
         wv.setAttribute('allowpopups', '')
-        wv.style.cssText = 'width:100%;height:420px;display:block;'
+        wv.style.cssText = 'width:100%;height:100%;position:absolute;top:0;left:0;display:block;'
         const mount = $('trailer-mount')
         if (mount) mount.appendChild(wv)
     }
@@ -589,7 +607,6 @@ function showAnimeDetail (anime)
         btn.title         = now ? 'Remove from favourites' : 'Save to favourites'
     })
 }
-
 
 async function searchMAL (query)
 {
@@ -861,7 +878,8 @@ function renderFavourites ()
                     const article = JSON.parse(unescHtml(card.dataset.article))
                     window.navigateTo('news')
                     showArticleDetail(article)
-                } catch (err)
+                }
+                catch (err)
                 {
                     console.error('[Fav] article parse error:', err)
                 }
@@ -911,7 +929,8 @@ if (ddgWebview)
 //  8. WATCH ANIME — 9Anime in-app webview
 // ═══════════════════════════════════════════════════════════
 
-if (animeWebview) {
+if (animeWebview)
+{
     animeBack.addEventListener('click',    () => animeWebview.goBack())
     animeForward.addEventListener('click', () => animeWebview.goForward())
     animeReload.addEventListener('click',  () => animeWebview.reload())
