@@ -62,4 +62,3 @@ module Api
     end
   end
 end
-my news controller
