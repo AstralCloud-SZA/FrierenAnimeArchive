@@ -641,6 +641,51 @@ html, body
     color:var(--frost-deep);
 }
 
+
+
+/* ── Article full content typography ─────────────────── */
+/* ── Article full content typography ─────────────────── */
+.article-full-content p {
+    margin: 0 0 1.2em 0;
+    color: var(--silver-bright);
+    font-size: 17px;
+    line-height: 1.9;
+}
+
+.article-full-content h1,
+.article-full-content h2,
+.article-full-content h3 {
+    font-family: var(--font-title);
+    color: var(--gold-bright);
+    margin: 1.4em 0 0.5em;
+    letter-spacing: 0.06em;
+}
+
+.article-full-content a
+{
+    color: var(--teal-bright);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.article-full-content a:hover { color: var(--gold-bright); }
+
+.article-full-content ul,
+.article-full-content ol
+{
+    padding-left: 1.4em;
+    margin-bottom: 1em;
+    color: var(--silver-Kawaii);
+}
+
+.article-full-content li { margin-bottom: 0.4em; }
+
+.article-full-content img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin: 12px 0;
+}
+
 /* ── Favourites tabs ──────────────────────── */
 .fav-tabs {
     display: flex;

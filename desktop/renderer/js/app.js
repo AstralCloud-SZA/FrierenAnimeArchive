@@ -54,7 +54,8 @@ const animeReload    = $('anime-reload')
 //  2. UI HELPERS
 // ═══════════════════════════════════════════════════════════
 
-function escHtml (str) {
+function escHtml (str)
+{
     return String(str)
         .replace(/&/g,  '&amp;')
         .replace(/</g,  '&lt;')
@@ -62,7 +63,8 @@ function escHtml (str) {
         .replace(/"/g,  '&quot;')
 }
 
-function unescHtml (str) {
+function unescHtml (str)
+{
     return str
         .replace(/&quot;/g, '"')
         .replace(/&amp;/g,  '&')
@@ -70,7 +72,8 @@ function unescHtml (str) {
         .replace(/&gt;/g,   '>')
 }
 
-function glassCard (heading, bodyHTML) {
+function glassCard (heading, bodyHTML)
+{
     return `
     <div class="glass-card">
       <div class="card-heading">${heading}</div>
@@ -78,7 +81,8 @@ function glassCard (heading, bodyHTML) {
     </div>`
 }
 
-function emptyState (icon, msg, quote = '') {
+function emptyState (icon, msg, quote = '')
+{
     return `
     <div class="empty-state">
       <div class="empty-icon">${icon}</div>
@@ -87,7 +91,8 @@ function emptyState (icon, msg, quote = '') {
     </div>`
 }
 
-function loading (msg = 'Casting spell…') {
+function loading (msg = 'Casting spell…')
+{
     return `
     <div class="empty-state">
       <div class="empty-icon"
@@ -96,16 +101,27 @@ function loading (msg = 'Casting spell…') {
     </div>`
 }
 
+// ── Plain text → HTML paragraphs (handles both HTML and plain text from Rails) ──
+function plainToHtml (text)
+{
+    if (!text) return ''
+    if (/<[a-z][\s\S]*>/i.test(text)) return text
+    return text
+        .split(/\n{2,}/)
+        .filter(p => p.trim())
+        .map(p => `<p style="margin:0 0 1em 0;">${p.replace(/\n/g, '<br>')}</p>`)
+        .join('')
+}
+
 // ═══════════════════════════════════════════════════════════
 //  3. API STATUS
 // ═══════════════════════════════════════════════════════════
 
-function setApiStatus (online) {
+function setApiStatus (online)
+{
     apiDot.style.background = online ? '#4ade80' : '#f87171'
-    apiDot.style.boxShadow  = online
-        ? '0 0 8px rgba(74,222,128,0.80)'
-        : '0 0 8px rgba(248,113,113,0.80)'
-    apiStatus.textContent = online ? 'Rails API' : 'API offline'
+    apiDot.style.boxShadow  = online ? '0 0 8px rgba(74,222,128,0.80)' : '0 0 8px rgba(248,113,113,0.80)'
+    apiStatus.textContent   = online ? 'Rails API' : 'API offline'
     if (settingsBadge) settingsBadge.textContent = online ? 'Connected' : 'Offline'
 }
 
@@ -113,8 +129,8 @@ function setApiStatus (online) {
 //  4. NEWS — load, in-app reader, star/save
 // ═══════════════════════════════════════════════════════════
 
-// ── News card HTML — MAL-style horizontal layout ──────────
-function newsCardHTML (article) {
+function newsCardHTML (article)
+{
     const date     = article.published_at
         ? new Date(article.published_at).toLocaleDateString('en-ZA', {
             day: 'numeric', month: 'short', year: 'numeric'
@@ -158,10 +174,10 @@ function newsCardHTML (article) {
     </div>`
 }
 
-// ── News reader helpers ───────────────────────────────────
 const newsReaderOrigCard = () => newsReader.querySelector('.glass-card')
 
-function closeNewsDetail () {
+function closeNewsDetail ()
+{
     const orig = newsReaderOrigCard()
     if (orig) orig.style.display = ''
     newsReader.style.display  = 'none'
@@ -172,8 +188,8 @@ function closeNewsDetail () {
     if (old) old.remove()
 }
 
-// ── In-app native article detail (fetches full content) ───
-async function showArticleDetail (article) {
+async function showArticleDetail (article)
+{
     const date = article.published_at
         ? new Date(article.published_at).toLocaleDateString('en-ZA', {
             day: 'numeric', month: 'short', year: 'numeric',
@@ -192,7 +208,6 @@ async function showArticleDetail (article) {
     const old = $('news-native-detail')
     if (old) old.remove()
 
-    // Render shell immediately with loading spinner in body
     const detail = document.createElement('div')
     detail.id = 'news-native-detail'
     detail.innerHTML = `
@@ -214,12 +229,11 @@ async function showArticleDetail (article) {
     newsReader.appendChild(detail)
     $('news-detail-back').addEventListener('click', () => closeNewsDetail())
 
-    // Fetch full parsed content from Rails
     const result = await API.get(`/api/news/content?url=${encodeURIComponent(article.url)}`)
     const body   = $('news-detail-body')
 
-    if (result.ok && result.data?.content) {
-        // ── Success — render full parsed article ─────────────
+    if (result.ok && result.data?.content)
+    {
         body.innerHTML = `
         <div style="display:flex;gap:22px;flex-wrap:wrap;
                     align-items:flex-start;margin-bottom:24px;">
@@ -244,14 +258,13 @@ async function showArticleDetail (article) {
           </div>
         </div>
 
-        <div id="article-full-content"
+        <div id="article-full-content" class="article-full-content"
              style="font-size:16px;line-height:1.9;color:var(--silver-Kawaii);
                     border-top:1px solid var(--border);padding-top:20px;">
-          ${result.data.content}
+          ${plainToHtml(result.data.content)}
         </div>`
 
-        // Intercept links — open in DDG webview instead of browser
-        detail.querySelectorAll('#article-full-content a').forEach(a => {
+        detail.querySelectorAll('.article-full-content a').forEach(a => {
             a.addEventListener('click', e => {
                 e.preventDefault()
                 const href = a.getAttribute('href')
@@ -263,16 +276,16 @@ async function showArticleDetail (article) {
             })
         })
 
-        // Style and sanitise images in parsed content
-        detail.querySelectorAll('#article-full-content img').forEach(img => {
+        detail.querySelectorAll('.article-full-content img').forEach(img => {
             img.style.maxWidth     = '100%'
             img.style.borderRadius = '8px'
             img.style.margin       = '12px 0'
             img.onerror            = () => img.remove()
         })
 
-    } else {
-        // ── Fallback — show summary if parse fails ────────────
+    }
+    else
+    {
         body.innerHTML = `
         <div style="display:flex;gap:22px;flex-wrap:wrap;
                     align-items:flex-start;margin-bottom:24px;">
@@ -297,9 +310,10 @@ async function showArticleDetail (article) {
           </div>
         </div>
 
-        <div style="font-size:16px;line-height:1.9;color:var(--silver-Kawaii);
+        <div class="article-full-content"
+             style="font-size:16px;line-height:1.9;color:var(--silver-Kawaii);
                     border-top:1px solid var(--border);padding-top:20px;">
-          ${escHtml(article.summary || 'No content available.')}
+          ${plainToHtml(article.summary || 'No content available.')}
         </div>
 
         <div style="margin-top:20px;">
@@ -317,11 +331,10 @@ async function showArticleDetail (article) {
     }
 }
 
-// ── Original back button (fallback) ──────────────────────
 newsReaderBack.addEventListener('click', () => closeNewsDetail())
 
-// ── Health check ──────────────────────────────────────────
-async function checkHealth () {
+async function checkHealth ()
+{
     btnHealth.textContent = 'Checking…'
     btnHealth.disabled    = true
     const result = await API.get('/api/health')
@@ -331,8 +344,8 @@ async function checkHealth () {
     return result.ok
 }
 
-// ── Load news ─────────────────────────────────────────────
-async function loadNews () {
+async function loadNews ()
+{
     newsList.innerHTML  = loading('Summoning news from the archive…')
     btnNews.disabled    = true
     btnNews.textContent = 'Loading…'
@@ -342,29 +355,38 @@ async function loadNews () {
 
     const result = await API.get('/api/news')
 
-    if (!result.ok) {
+    if (!result.ok)
+    {
         newsList.innerHTML = emptyState(
             '❄️',
             'Could not reach the Rails API.<br>Make sure <code>rails s</code> is running.',
             '"Even the greatest mage cannot conjure what is not there."'
         )
         setApiStatus(false)
-    } else {
+    }
+    else
+    {
         const articles = Array.isArray(result.data) ? result.data : []
 
-        if (articles.length === 0) {
+        if (articles.length === 0)
+        {
             newsList.innerHTML = emptyState(
                 '🌿',
                 'No articles in the archive yet.',
                 '"A quiet world is still a world worth wandering."'
             )
-        } else {
+        }
+        else
+        {
             newsList.innerHTML = articles.map(newsCardHTML).join('')
 
-            newsList.querySelectorAll('.fav-star-btn').forEach(btn => {
-                btn.addEventListener('click', e => {
+            newsList.querySelectorAll('.fav-star-btn').forEach(btn =>
+            {
+                btn.addEventListener('click', e =>
+                {
                     e.stopPropagation()
-                    try {
+                    try
+                    {
                         const card        = btn.closest('.news-card')
                         const article     = JSON.parse(unescHtml(card.dataset.article))
                         toggleFavArticle(article)
@@ -372,7 +394,9 @@ async function loadNews () {
                         btn.textContent   = now ? '⭐' : '☆'
                         btn.style.opacity = now ? '1' : '0.35'
                         btn.title         = now ? 'Remove from favourites' : 'Save to favourites'
-                    } catch (err) {
+                    }
+                    catch (err)
+                    {
                         console.error('[Star] article parse error:', err)
                     }
                 })
@@ -401,16 +425,14 @@ async function loadNews () {
 //  5. MAL SEARCH + IN-APP DETAIL + STAR/SAVE
 // ═══════════════════════════════════════════════════════════
 
-function malCardHTML (anime) {
+function malCardHTML (anime)
+{
     const score    = anime.score    ? `⭐ ${anime.score}`       : ''
     const eps      = anime.episodes ? `· ${anime.episodes} eps` : ''
     const status   = anime.status   || ''
-    const synopsis = anime.synopsis
-        ? escHtml(anime.synopsis.slice(0, 180)) + '…'
-        : '<em style="opacity:0.5;">No synopsis available.</em>'
-    const img      = anime.images?.jpg?.image_url
-        || anime.images?.webp?.image_url || ''
-    const saved    = isFavAnime(anime.mal_id)
+    const synopsis = anime.synopsis ? escHtml(anime.synopsis.slice(0, 180)) + '…' : '<em style="opacity:0.5;">No synopsis available.</em>'
+    const img             = anime.images?.jpg?.image_url || anime.images?.webp?.image_url || ''
+    const saved           = isFavAnime(anime.mal_id)
     const safeJson = escHtml(JSON.stringify(anime))
 
     return `
@@ -443,7 +465,8 @@ function malCardHTML (anime) {
     </div>`
 }
 
-function showAnimeDetail (anime) {
+function showAnimeDetail (anime)
+{
     const img     = anime.images?.jpg?.large_image_url
         || anime.images?.jpg?.image_url || ''
     const score   = anime.score    ? `⭐ ${anime.score}`     : 'N/A'
@@ -528,20 +551,28 @@ function showAnimeDetail (anime) {
           <div class="card-heading" style="font-size:15px;margin-bottom:12px;">
             🎬 Trailer
           </div>
-           <webview src="${escHtml(trailer)}"
-              partition="persist:trailers"
-              useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-              style="width:100%;height:340px;border:1px solid var(--border);
-              border-radius:10px;"
-              allowpopups>
-         </webview>
+          <div id="trailer-mount" style="width:100%;height:340px;"></div>
         </div>` : ''}
       </div>
     </div>`
 
+    // ── Trailer: must use createElement, not innerHTML ────────
+    if (trailer)
+    {
+        const wv = document.createElement('webview')
+        wv.src       = trailer.split('?')[0]
+        wv.partition = 'persist:trailers'
+        wv.setAttribute('useragent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+        wv.setAttribute('allowpopups', '')
+        wv.style.cssText = 'width:100%;height:340px;border:1px solid var(--border);border-radius:10px;display:block;'
+        const mount = $('trailer-mount')
+        if (mount) mount.appendChild(wv)
+    }
+
     $('mal-back').addEventListener('click', () => searchMAL(malInput.value))
 
-    $('detail-star-btn').addEventListener('click', () => {
+    $('detail-star-btn').addEventListener('click', () =>
+    {
         toggleFavAnime(anime)
         const now = isFavAnime(anime.mal_id)
         const btn = $('detail-star-btn')
@@ -551,7 +582,8 @@ function showAnimeDetail (anime) {
     })
 }
 
-async function searchMAL (query) {
+async function searchMAL (query)
+{
     if (!query.trim()) return
     if (malEmpty) malEmpty.style.display = 'none'
     malOutput.innerHTML = loading('Searching the Grimoire…')
@@ -560,7 +592,8 @@ async function searchMAL (query) {
     const url    = `/api/anime/search?q=${encodeURIComponent(query.trim())}&sfw=${sfw}`
     const result = await API.get(url)
 
-    if (!result.ok) {
+    if (!result.ok)
+    {
         malOutput.innerHTML = emptyState(
             '❄️',
             'Anime search failed. Make sure the Rails API is running.',
@@ -572,20 +605,24 @@ async function searchMAL (query) {
 
     const list = result.data?.data || result.data || []
 
-    if (list.length === 0) {
+    if (list.length === 0)
+    {
         malOutput.innerHTML = emptyState(
             '📖',
             'No results found for that title.',
             '"Not all knowledge is written in the grimoires of this world."'
         )
-    } else {
+    }
+    else
+    {
         malOutput.innerHTML =
             `<div class="news-list">${list.map(malCardHTML).join('')}</div>`
 
         malOutput.querySelectorAll('.mal-card').forEach(card => {
             card.querySelector('.fav-star-btn')?.addEventListener('click', e => {
                 e.stopPropagation()
-                try {
+                try
+                {
                     const anime       = JSON.parse(unescHtml(card.dataset.anime))
                     toggleFavAnime(anime)
                     const now         = isFavAnime(anime.mal_id)
@@ -593,12 +630,15 @@ async function searchMAL (query) {
                     btn.textContent   = now ? '⭐' : '☆'
                     btn.style.opacity = now ? '1' : '0.35'
                     btn.title         = now ? 'Remove from favourites' : 'Save to favourites'
-                } catch (err) {
+                }
+                catch (err)
+                {
                     console.error('[Star] anime parse error:', err)
                 }
             })
 
-            card.addEventListener('click', async e => {
+            card.addEventListener('click', async e =>
+            {
                 if (e.target.classList.contains('fav-star-btn')) return
                 const id = card.dataset.malId
                 if (!id) return
@@ -606,12 +646,18 @@ async function searchMAL (query) {
                 malOutput.innerHTML = loading('Opening grimoire entry…')
                 const detail = await API.get(`/api/anime/${id}`)
 
-                if (detail.ok && detail.data && Object.keys(detail.data).length) {
+                if (detail.ok && detail.data && Object.keys(detail.data).length)
+                {
                     showAnimeDetail(detail.data)
-                } else {
-                    try {
+                }
+                else
+                {
+                    try
+                    {
                         showAnimeDetail(JSON.parse(unescHtml(card.dataset.anime)))
-                    } catch {
+                    }
+                    catch
+                    {
                         malOutput.innerHTML = emptyState('❄️', 'Could not load details.', '')
                     }
                 }
@@ -636,11 +682,15 @@ function saveFavArticles (l) { localStorage.setItem(FAV_ARTICLES_KEY, JSON.strin
 function isFavAnime (mal_id) { return getFavAnime().some(a => String(a.mal_id) === String(mal_id)) }
 function isFavArticle (url)  { return getFavArticles().some(a => a.url === url) }
 
-function toggleFavAnime (anime) {
+function toggleFavAnime (anime)
+{
     let list = getFavAnime()
-    if (isFavAnime(anime.mal_id)) {
+    if (isFavAnime(anime.mal_id))
+    {
         list = list.filter(a => String(a.mal_id) !== String(anime.mal_id))
-    } else {
+    }
+    else
+    {
         list.push({
             mal_id:   anime.mal_id,
             title:    anime.title,
@@ -656,11 +706,15 @@ function toggleFavAnime (anime) {
     renderFavourites()
 }
 
-function toggleFavArticle (article) {
+function toggleFavArticle (article)
+{
     let list = getFavArticles()
-    if (isFavArticle(article.url)) {
+    if (isFavArticle(article.url))
+    {
         list = list.filter(a => a.url !== article.url)
-    } else {
+    }
+    else
+    {
         list.push({
             title:        article.title,
             url:          article.url,
@@ -673,7 +727,8 @@ function toggleFavArticle (article) {
     renderFavourites()
 }
 
-function renderFavourites () {
+function renderFavourites ()
+{
     const animeList     = $('fav-anime-list')
     const animeEmpty    = $('fav-anime-empty')
     const articlesList  = $('fav-articles-list')
@@ -682,11 +737,13 @@ function renderFavourites () {
     const anime    = getFavAnime()
     const articles = getFavArticles()
 
-    // ── Saved anime ──────────────────────────────────────────
-    if (anime.length === 0) {
+    if (anime.length === 0)
+    {
         animeEmpty.style.display = 'block'
         animeList.innerHTML      = ''
-    } else {
+    }
+    else
+    {
         animeEmpty.style.display = 'none'
         animeList.innerHTML = anime.map(a => `
         <div class="news-card mal-card"
@@ -715,16 +772,20 @@ function renderFavourites () {
                   onmouseout="this.style.opacity=0.55">✕</button>
         </div>`).join('')
 
-        animeList.querySelectorAll('.fav-remove-btn').forEach(btn => {
-            btn.addEventListener('click', e => {
+        animeList.querySelectorAll('.fav-remove-btn').forEach(btn =>
+        {
+            btn.addEventListener('click', e =>
+            {
                 e.stopPropagation()
                 saveFavAnime(getFavAnime().filter(a => String(a.mal_id) !== String(btn.dataset.malId)))
                 renderFavourites()
             })
         })
 
-        animeList.querySelectorAll('.mal-card').forEach(card => {
-            card.addEventListener('click', async e => {
+        animeList.querySelectorAll('.mal-card').forEach(card =>
+        {
+            card.addEventListener('click', async e =>
+            {
                 if (e.target.classList.contains('fav-remove-btn')) return
                 const id = card.dataset.malId
                 if (!id) return
@@ -737,13 +798,16 @@ function renderFavourites () {
         })
     }
 
-    // ── Saved articles ───────────────────────────────────────
-    if (articles.length === 0) {
+    if (articles.length === 0)
+    {
         articlesEmpty.style.display = 'block'
         articlesList.innerHTML      = ''
-    } else {
+    }
+    else
+    {
         articlesEmpty.style.display = 'none'
-        articlesList.innerHTML = articles.map(a => {
+        articlesList.innerHTML = articles.map(a =>
+        {
             const date = a.published_at
                 ? new Date(a.published_at).toLocaleDateString('en-ZA',
                     { day: 'numeric', month: 'short', year: 'numeric' })
@@ -768,22 +832,28 @@ function renderFavourites () {
             </div>`
         }).join('')
 
-        articlesList.querySelectorAll('.fav-remove-btn').forEach(btn => {
-            btn.addEventListener('click', e => {
+        articlesList.querySelectorAll('.fav-remove-btn').forEach(btn =>
+        {
+            btn.addEventListener('click', e =>
+            {
                 e.stopPropagation()
                 saveFavArticles(getFavArticles().filter(a => a.url !== btn.dataset.url))
                 renderFavourites()
             })
         })
 
-        articlesList.querySelectorAll('.news-card').forEach(card => {
-            card.addEventListener('click', e => {
+        articlesList.querySelectorAll('.news-card').forEach(card =>
+        {
+            card.addEventListener('click', e =>
+            {
                 if (e.target.classList.contains('fav-remove-btn')) return
-                try {
+                try
+                {
                     const article = JSON.parse(unescHtml(card.dataset.article))
                     window.navigateTo('news')
                     showArticleDetail(article)
-                } catch (err) {
+                } catch (err)
+                {
                     console.error('[Fav] article parse error:', err)
                 }
             })
@@ -791,9 +861,10 @@ function renderFavourites () {
     }
 }
 
-// ── Favourites tab switcher ───────────────────────────────
-document.querySelectorAll('.fav-tab').forEach(tab => {
-    tab.addEventListener('click', () => {
+document.querySelectorAll('.fav-tab').forEach(tab =>
+{
+    tab.addEventListener('click', () =>
+    {
         document.querySelectorAll('.fav-tab').forEach(t => t.classList.remove('active'))
         document.querySelectorAll('.fav-panel').forEach(p => p.style.display = 'none')
         tab.classList.add('active')
@@ -811,13 +882,16 @@ function ddgSearch (query) {
     ddgWebview.src = url
 }
 
-if (ddgWebview) {
+if (ddgWebview)
+{
     ddgBack.addEventListener('click',    () => ddgWebview.goBack())
     ddgForward.addEventListener('click', () => ddgWebview.goForward())
     ddgReload.addEventListener('click',  () => ddgWebview.reload())
 
-    ddgWebview.addEventListener('did-navigate', e => {
-        try {
+    ddgWebview.addEventListener('did-navigate', e =>
+    {
+        try
+        {
             const q = new URL(e.url).searchParams.get('q')
             if (q) ddgInput.value = decodeURIComponent(q)
         } catch { /* non-DDG URL — ignore */ }
@@ -833,11 +907,13 @@ if (animeWebview) {
     animeForward.addEventListener('click', () => animeWebview.goForward())
     animeReload.addEventListener('click',  () => animeWebview.reload())
 
-    animeWebview.addEventListener('did-navigate', e => {
+    animeWebview.addEventListener('did-navigate', e =>
+    {
         console.log('[9Anime] navigated to:', e.url)
     })
 
-    animeWebview.addEventListener('did-fail-load', e => {
+    animeWebview.addEventListener('did-fail-load', e =>
+    {
         if (e.errorCode === -3) return
         console.warn('[9Anime] load failed:', e.errorDescription)
     })
@@ -847,9 +923,11 @@ if (animeWebview) {
 //  9. SETTINGS — SFW TOGGLE
 // ═══════════════════════════════════════════════════════════
 
-if (sfwToggle) {
+if (sfwToggle)
+{
     sfwToggle.checked = localStorage.getItem('sfw_filter') === 'true'
-    sfwToggle.addEventListener('change', () => {
+    sfwToggle.addEventListener('change', () =>
+    {
         localStorage.setItem('sfw_filter', sfwToggle.checked)
         console.log(`[Settings] SFW filter: ${sfwToggle.checked ? 'ON ✅' : 'OFF ❌'}`)
     })
@@ -859,7 +937,8 @@ if (sfwToggle) {
 //  10. EVENT LISTENERS
 // ═══════════════════════════════════════════════════════════
 
-globalSearch.addEventListener('keydown', e => {
+globalSearch.addEventListener('keydown', e =>
+{
     if (e.key !== 'Enter') return
     const q = globalSearch.value.trim()
     if (!q) return
@@ -873,16 +952,19 @@ btnHealth.addEventListener('click', checkHealth)
 btnNews.addEventListener('click',   loadNews)
 
 ddgBtn.addEventListener('click', () => ddgSearch(ddgInput.value))
-ddgInput.addEventListener('keydown', e => {
+ddgInput.addEventListener('keydown', e =>
+{
     if (e.key === 'Enter') ddgSearch(ddgInput.value)
 })
 
 malBtn.addEventListener('click', () => searchMAL(malInput.value))
-malInput.addEventListener('keydown', e => {
+malInput.addEventListener('keydown', e =>
+{
     if (e.key === 'Enter') searchMAL(malInput.value)
 })
 
-document.addEventListener('keydown', e => {
+document.addEventListener('keydown', e =>
+{
     if (e.ctrlKey && e.key === 'k') {
         e.preventDefault()
         globalSearch.focus()
@@ -896,7 +978,8 @@ if (window.api?.onNav) {
 // ═══════════════════════════════════════════════════════════
 //  11. BOOT SEQUENCE
 // ═══════════════════════════════════════════════════════════
-;(async () => {
+;(async () =>
+{
     setApiStatus(false)
     apiStatus.textContent = 'Connecting…'
     await checkHealth()
