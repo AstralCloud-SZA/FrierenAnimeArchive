@@ -101,12 +101,17 @@ function loading (msg = 'Casting spell…')
     </div>`
 }
 
-// ── Plain text → HTML paragraphs (handles both HTML and plain text from Rails) ──
+// ── Plain text → HTML paragraphs ──────────────────────────
+// Patches referrerpolicy onto ALL img tags before innerHTML
+// is ever assigned — this fires before the browser sends
+// the request, so CDNs never see a Referer and allow the load.
 function plainToHtml (text)
 {
     if (!text) return ''
-    if (/<[a-z][\s\S]*>/i.test(text)) return text
-    return text
+    // Inject referrerpolicy into every <img before the browser fetches it
+    const patched = text.replace(/<img(\s)/gi, '<img referrerpolicy="no-referrer"$1')
+    if (/<[a-z][\s\S]*>/i.test(patched)) return patched
+    return patched
         .split(/\n{2,}/)
         .filter(p => p.trim())
         .map(p => `<p style="margin:0 0 1em 0;">${p.replace(/\n/g, '<br>')}</p>`)
@@ -150,6 +155,7 @@ function newsCardHTML (article)
          style="display:flex;gap:14px;align-items:flex-start;cursor:pointer;">
       ${img
         ? `<img src="${escHtml(img)}" alt=""
+               referrerpolicy="no-referrer"
                style="width:54px;height:76px;object-fit:cover;
                       border-radius:6px;flex-shrink:0;opacity:0.90;">`
         : `<div style="width:54px;height:76px;flex-shrink:0;border-radius:6px;
@@ -278,13 +284,13 @@ async function showArticleDetail (article)
             })
         })
 
-        // Fix images — no-referrer so CDNs don't block hotlinks, placeholder on error
+        // Style content images + placeholder on error
+        // referrerpolicy already injected by plainToHtml before fetch
         detail.querySelectorAll('.article-full-content img').forEach(el => {
             el.style.maxWidth     = '100%'
             el.style.borderRadius = '8px'
             el.style.margin       = '12px 0'
             el.style.display      = 'block'
-            el.setAttribute('referrerpolicy', 'no-referrer')
             el.onerror = () => {
                 el.style.display = 'none'
                 const placeholder = document.createElement('div')
@@ -297,7 +303,6 @@ async function showArticleDetail (article)
                 el.parentNode?.insertBefore(placeholder, el.nextSibling)
             }
         })
-
     }
     else
     {
@@ -458,6 +463,7 @@ function malCardHTML (anime)
          style="display:flex;gap:14px;align-items:flex-start;cursor:pointer;">
       ${img
         ? `<img src="${escHtml(img)}" alt=""
+               referrerpolicy="no-referrer"
                style="width:54px;height:76px;object-fit:cover;
                       border-radius:6px;flex-shrink:0;opacity:0.90;">`
         : ''}
@@ -521,6 +527,7 @@ function showAnimeDetail (anime)
         <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;">
           ${img ? `
           <img src="${escHtml(img)}" alt="${escHtml(anime.title || '')}"
+               referrerpolicy="no-referrer"
                style="width:170px;height:240px;object-fit:cover;
                       border-radius:10px;border:1px solid var(--border);
                       flex-shrink:0;box-shadow:0 8px 32px rgba(0,0,0,0.5);">` : ''}
@@ -574,15 +581,15 @@ function showAnimeDetail (anime)
           </div>
           <div id="trailer-mount"
                style="width:100%;height:480px;border-radius:10px;
-                      border:1px solid var(--border);overflow:hidden;
-                      position:relative;">
+                      border:1px solid var(--border);">
           </div>
         </div>` : ''}
       </div>
     </div>`
 
     // ── Trailer — createElement required, innerHTML webviews ignored by Electron
-    // ── Watch page URL used — embed URLs always trigger Error 153
+    // ── Explicit px height on webview — position tricks don't work on native elements
+    // ── Watch page URL — embed URLs always trigger Error 153
     if (watchUrl)
     {
         const wv = document.createElement('webview')
@@ -590,7 +597,7 @@ function showAnimeDetail (anime)
         wv.partition = 'persist:trailers'
         wv.setAttribute('useragent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
         wv.setAttribute('allowpopups', '')
-        wv.style.cssText = 'width:100%;height:100%;position:absolute;top:0;left:0;display:block;'
+        wv.style.cssText = 'width:100%;height:480px;display:block;border-radius:10px;'
         const mount = $('trailer-mount')
         if (mount) mount.appendChild(wv)
     }
@@ -777,6 +784,7 @@ function renderFavourites ()
              style="display:flex;gap:14px;align-items:flex-start;cursor:pointer;">
           ${a.image
             ? `<img src="${escHtml(a.image)}" alt=""
+                   referrerpolicy="no-referrer"
                    style="width:54px;height:76px;object-fit:cover;
                           border-radius:6px;flex-shrink:0;opacity:0.90;">`
             : ''}

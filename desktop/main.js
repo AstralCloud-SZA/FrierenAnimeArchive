@@ -20,10 +20,9 @@ function createWindow () {
     // ── Content Security Policy ────────────────────────────
     // Only apply CSP to our local file:// pages.
     // External requests (webview, fonts, etc.) pass through
-    // untouched so DuckDuckGo webview loads without issues.
+    // untouched so DuckDuckGo / YouTube webviews load freely.
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
         if (!details.url.startsWith('file://')) {
-            // Pass-through — don't block webview or external content
             return callback({ responseHeaders: details.responseHeaders })
         }
 
@@ -35,23 +34,44 @@ function createWindow () {
                         "default-src 'self' 'unsafe-inline' 'unsafe-eval'",
                         "script-src  'self' 'unsafe-inline' 'unsafe-eval'",
                         "style-src   'self' 'unsafe-inline' https://fonts.googleapis.com",
-                        "font-src    'self' https://fonts.gstatic.com",
-                        "img-src     'self' data: https: blob:",
-                        "connect-src 'self' http://localhost:3000",
+                        "font-src    'self' https://fonts.gstatic.com data:",
+                        "img-src     *     data: blob:",       // ← * allows ANN/MAL/CDN images
+                        "connect-src 'self' http://localhost:3000 https:",
                         "frame-src   *",
-                        "child-src   *"
+                        "child-src   *",
+                        "media-src   *"
                     ].join('; ')
                 ]
             }
         })
     })
 
+    // ── Intercept image requests — strip Referer header ───
+    // ANN and most anime news CDNs block hotlinks when a
+    // Referer is present. Removing it makes requests look
+    // like direct browser visits, which CDNs allow.
+    session.defaultSession.webRequest.onBeforeSendHeaders(
+        { urls: ['https://*/*', 'http://*/*'] },
+        (details, callback) => {
+            const headers = { ...details.requestHeaders }
+            // Only strip Referer from image/media requests, not API calls
+            if (
+                headers['Accept']?.includes('image') ||
+                /\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i.test(details.url)
+            ) {
+                delete headers['Referer']
+                delete headers['Origin']
+            }
+            callback({ requestHeaders: headers })
+        }
+    )
+
     const mainWindow = new BrowserWindow({
         width:           1400,
         height:          900,
         minWidth:        960,
         minHeight:       600,
-        backgroundColor: '#020408',   // Frieren void black — no white flash on load
+        backgroundColor: '#020408',
         titleBarStyle:   'default',
         title:           'Frieren Archive',
         webPreferences: {
@@ -59,7 +79,8 @@ function createWindow () {
             contextIsolation: true,
             nodeIntegration:  false,
             sandbox:          false,    // required for fetch() in preload
-            webviewTag:       true      // required for <webview> DDG browser
+            webviewTag:       true,     // required for <webview> elements
+            webSecurity:      false     // allows external images + cross-origin requests
         }
     })
 
@@ -71,14 +92,11 @@ function createWindow () {
     }
 
     // ── External links → OS default browser ─────────────
-    // Prevents Electron opening news articles / MAL links
-    // inside the main app window
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
         shell.openExternal(url)
         return { action: 'deny' }
     })
 
-    // Catch anchor clicks with target="_blank"
     mainWindow.webContents.on('will-navigate', (event, url) => {
         if (!url.startsWith('file://')) {
             event.preventDefault()
@@ -90,8 +108,6 @@ function createWindow () {
 }
 
 // ── Application menu ─────────────────────────────────────
-// Ctrl+1…5 → sends 'navigate' IPC to renderer (nav.js)
-// Standard Edit menu → cut/copy/paste work in all inputs
 function buildMenu (mainWindow) {
     const template = [
         {
@@ -127,12 +143,12 @@ function buildMenu (mainWindow) {
         {
             label: 'Edit',
             submenu: [
-                { role: 'undo' },
-                { role: 'redo' },
+                { role: 'undo'      },
+                { role: 'redo'      },
                 { type: 'separator' },
-                { role: 'cut' },
-                { role: 'copy' },
-                { role: 'paste' },
+                { role: 'cut'       },
+                { role: 'copy'      },
+                { role: 'paste'     },
                 { role: 'selectAll' }
             ]
         },
@@ -141,14 +157,13 @@ function buildMenu (mainWindow) {
             submenu: [
                 { role: 'reload',         accelerator: 'CmdOrCtrl+R'       },
                 { role: 'forceReload',    accelerator: 'CmdOrCtrl+Shift+R' },
-                { type: 'separator' },
+                { type: 'separator'   },
                 { role: 'resetZoom'   },
                 { role: 'zoomIn'      },
                 { role: 'zoomOut'     },
                 { type: 'separator'   },
                 { role: 'togglefullscreen' },
-                // DevTools always available via F12 regardless of isDev
-                { type: 'separator' },
+                { type: 'separator'   },
                 {
                     label:       'Toggle DevTools',
                     accelerator: 'F12',
@@ -176,13 +191,11 @@ app.whenReady().then(() => {
     const mainWindow = createWindow()
     buildMenu(mainWindow)
 
-    // macOS: re-create window when dock icon clicked
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
 })
 
-// Quit when all windows closed (Windows / Linux)
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
 })
