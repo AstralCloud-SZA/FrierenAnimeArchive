@@ -15,14 +15,17 @@ const path = require('node:path')
 const isDev = process.env.NODE_ENV === 'development'
 
 // ── Create main window ───────────────────────────────────
-function createWindow () {
+function createWindow ()
+{
 
     // ── Content Security Policy ────────────────────────────
     // Only apply CSP to our local file:// pages.
     // External requests (webview, fonts, etc.) pass through
     // untouched so DuckDuckGo / YouTube webviews load freely.
-    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-        if (!details.url.startsWith('file://')) {
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) =>
+    {
+        if (!details.url.startsWith('file://'))
+        {
             return callback({ responseHeaders: details.responseHeaders })
         }
 
@@ -52,7 +55,8 @@ function createWindow () {
     // like direct browser visits, which CDNs allow.
     session.defaultSession.webRequest.onBeforeSendHeaders(
         { urls: ['https://*/*', 'http://*/*'] },
-        (details, callback) => {
+        (details, callback) =>
+        {
             const headers = { ...details.requestHeaders }
             // Only strip Referer from image/media requests, not API calls
             if (
@@ -80,24 +84,27 @@ function createWindow () {
             nodeIntegration:  false,
             sandbox:          false,    // required for fetch() in preload
             webviewTag:       true,     // required for <webview> elements
-            webSecurity:      false     // allows external images + cross-origin requests
+            webSecurity:      true
         }
     })
 
     mainWindow.loadFile('index.html')
 
     // ── DevTools (dev mode only) ─────────────────────────
-    if (isDev) {
+    if (isDev)
+    {
         mainWindow.webContents.openDevTools({ mode: 'detach' })
     }
 
     // ── External links → OS default browser ─────────────
-    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    mainWindow.webContents.setWindowOpenHandler(({ url }) =>
+    {
         shell.openExternal(url)
         return { action: 'deny' }
     })
 
-    mainWindow.webContents.on('will-navigate', (event, url) => {
+    mainWindow.webContents.on('will-navigate', (event, url) =>
+    {
         if (!url.startsWith('file://')) {
             event.preventDefault()
             shell.openExternal(url)
@@ -108,7 +115,8 @@ function createWindow () {
 }
 
 // ── Application menu ─────────────────────────────────────
-function buildMenu (mainWindow) {
+function buildMenu (mainWindow)
+{
     const template = [
         {
             label: 'Navigate',
