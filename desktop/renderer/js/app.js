@@ -245,7 +245,7 @@ async function showArticleDetail (article) {
         </div>
 
         <div id="article-full-content"
-             style="font-size:16px;line-height:1.9;color:var(--text-mid);
+             style="font-size:16px;line-height:1.9;color:var(--silver-Kawaii);
                     border-top:1px solid var(--border);padding-top:20px;">
           ${result.data.content}
         </div>`
@@ -297,7 +297,7 @@ async function showArticleDetail (article) {
           </div>
         </div>
 
-        <div style="font-size:16px;line-height:1.9;color:var(--text-mid);
+        <div style="font-size:16px;line-height:1.9;color:var(--silver-Kawaii);
                     border-top:1px solid var(--border);padding-top:20px;">
           ${escHtml(article.summary || 'No content available.')}
         </div>
@@ -519,7 +519,7 @@ function showAnimeDetail (anime) {
         </div>
 
         <div style="margin-top:20px;font-size:17px;
-                    line-height:1.85;color:var(--text-mid);">
+                    line-height:1.85;color:var(--silver-Kawaii);">
           ${escHtml(syn)}
         </div>
 
@@ -528,12 +528,13 @@ function showAnimeDetail (anime) {
           <div class="card-heading" style="font-size:15px;margin-bottom:12px;">
             🎬 Trailer
           </div>
-          <iframe src="${escHtml(trailer)}"
-            style="width:100%;height:340px;border:1px solid var(--border);
-                   border-radius:10px;"
-            allowfullscreen frameborder="0"
-            allow="autoplay; encrypted-media">
-          </iframe>
+           <webview src="${escHtml(trailer)}"
+              partition="persist:trailers"
+              useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+              style="width:100%;height:340px;border:1px solid var(--border);
+              border-radius:10px;"
+              allowpopups>
+         </webview>
         </div>` : ''}
       </div>
     </div>`

@@ -39,7 +39,7 @@
     --silver-Kawaii:  #DBDDDF;
     --silver-bright:  #fdf6e8;
     --silver-mid:     #d8c8a0;
-    --silver-dim:     #9a8860;
+    --silver-dim: #c7f3e4;
     --silver-glow:    rgba(245, 232, 208, 0.18);
 
     /* ── Teal eyes — SECONDARY accent ── */
@@ -501,7 +501,7 @@ html, body
     gap: 12px;
     padding: 6px 0;
     border-bottom: 1px solid rgba(240, 208, 112, 0.08);
-    font-family: var(--silver-Kawaii);
+    font-family: var(--gold-bright);
     font-size: 18px;
 }
 
@@ -630,7 +630,7 @@ html, body
 .news-card-summary {
     font-family: var(--font-body);
     font-size: 19px;
-    color: var(--silver-Kawaii);
+    color: var(--gold-bright);
     line-height: 1.65;
 }
 
@@ -638,7 +638,7 @@ html, body
     margin-top: 9px;
     font-family: var(--font-mono);
     font-size: 15px;
-    color:var(--silver-Kawaii);
+    color:var(--frost-deep);
 }
 
 /* ── Favourites tabs ──────────────────────── */
