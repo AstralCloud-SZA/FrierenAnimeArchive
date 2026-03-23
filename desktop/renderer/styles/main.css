@@ -36,6 +36,7 @@
 
     /* ── Silver hair → warm gold-white (not cold grey) ── */
     --silver:         #f5e8d0;
+    --silver-Kawaii:  #DBDDDF;
     --silver-bright:  #fdf6e8;
     --silver-mid:     #d8c8a0;
     --silver-dim:     #9a8860;
@@ -500,7 +501,7 @@ html, body
     gap: 12px;
     padding: 6px 0;
     border-bottom: 1px solid rgba(240, 208, 112, 0.08);
-    font-family: var(--font-body);
+    font-family: var(--silver-Kawaii);
     font-size: 18px;
 }
 
@@ -621,7 +622,7 @@ html, body
     font-family: var(--font-title);
     font-size: 22px;
     font-weight: 600;
-    color: var(--silver-bright);
+    color: var(--silver-Kawaii);
     line-height: 1.40;
     margin-bottom: 7px;
 }
@@ -629,7 +630,7 @@ html, body
 .news-card-summary {
     font-family: var(--font-body);
     font-size: 19px;
-    color: var(--text-mid);
+    color: var(--silver-Kawaii);
     line-height: 1.65;
 }
 
@@ -637,7 +638,7 @@ html, body
     margin-top: 9px;
     font-family: var(--font-mono);
     font-size: 15px;
-    color: rgba(122, 104, 64, 0.55);
+    color:var(--silver-Kawaii);
 }
 
 /* ── Favourites tabs ──────────────────────── */
