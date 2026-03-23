@@ -500,10 +500,12 @@ function showAnimeDetail (anime)
     const trailer = anime.trailer?.embed_url || null
     const saved   = isFavAnime(anime.mal_id)
 
-    // Extract video ID from Jikan embed URL — watch page avoids Error 153
     const videoId  = trailer?.match(/embed\/([^?&/]+)/)?.[1] || null
-    const watchUrl = videoId ? `https://www.youtube.com/watch?v=${videoId}` : null
+    // youtube-nocookie embed avoids login walls and region redirects
+    const embedUrl = videoId ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=0&rel=0&modestbranding=1` : null
 
+    // ── Trailer is a SIBLING of glass-card, NOT inside it ──
+    // glass-card has overflow:hidden which clips native webviews
     malOutput.innerHTML = `
     <div class="glass-card">
       <div class="card-heading"
@@ -573,27 +575,27 @@ function showAnimeDetail (anime)
                     line-height:1.85;color:var(--silver-Kawaii);">
           ${escHtml(syn)}
         </div>
-
-        ${watchUrl ? `
-        <div style="margin-top:24px;">
-          <div class="card-heading" style="font-size:15px;margin-bottom:12px;">
-            🎬 Trailer
-          </div>
-          <div id="trailer-mount"
-               style="width:100%;height:480px;border-radius:10px;
-                      border:1px solid var(--border);">
-          </div>
-        </div>` : ''}
       </div>
-    </div>`
+    </div>
 
-    // ── Trailer — createElement required, innerHTML webviews ignored by Electron
-    // ── Explicit px height on webview — position tricks don't work on native elements
-    // ── Watch page URL — embed URLs always trigger Error 153
-    if (watchUrl)
+    ${embedUrl ? `
+    <div style="margin-top:18px;margin-bottom:18px;">
+      <div class="card-heading" style="font-size:15px;margin-bottom:12px;padding:0 4px;">
+        🎬 Trailer
+      </div>
+      <div id="trailer-mount"
+           style="width:100%;height:480px;border-radius:10px;
+                  border:1px solid var(--border);background:#000;
+                  display:block;overflow:visible;">
+      </div>
+    </div>` : ''}`
+
+    // ── Webview appended after innerHTML settles ──
+    // Uses embed URL on youtube-nocookie — avoids login walls + region locks
+    if (embedUrl)
     {
         const wv = document.createElement('webview')
-        wv.src       = watchUrl
+        wv.src       = embedUrl
         wv.partition = 'persist:trailers'
         wv.setAttribute('useragent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
         wv.setAttribute('allowpopups', '')
@@ -614,6 +616,7 @@ function showAnimeDetail (anime)
         btn.title         = now ? 'Remove from favourites' : 'Save to favourites'
     })
 }
+
 
 async function searchMAL (query)
 {

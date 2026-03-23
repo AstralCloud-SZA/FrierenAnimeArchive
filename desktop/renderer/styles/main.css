@@ -771,6 +771,19 @@ html, body
     font-style: italic;
 }
 
+/* ── Webview enforcement — native elements ignore overflow:hidden ── */
+.webview
+{
+    display: block !important;
+    flex-shrink: 0 !important;
+}
+
+.trailer-mount {
+    overflow: visible !important;
+    contain: none !important;
+}
+
+
 
 /* ── Favourites tabs ──────────────────────── */
 .fav-tabs {
