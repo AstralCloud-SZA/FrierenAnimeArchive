@@ -831,6 +831,104 @@ html, body
     overflow: auto;
 }
 
+/* ═══ CUSTOM TITLE BAR ═══════════════════════════════════════ */
+.titlebar {
+    position:        fixed;
+    top:             0;
+    left:            0;
+    right:           0;
+    height:          38px;
+    z-index:         9999;
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    background:      rgba(2, 4, 8, 0.96);
+    border-bottom:   1px solid rgba(212, 175, 85, 0.18);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding:         0 0 0 14px;
+    user-select:     none;
+}
+
+/* Draggable region — the whole left side */
+.titlebar-drag
+{
+    display:         flex;
+    align-items:     center;
+    gap:             10px;
+    flex:            1;
+    -webkit-app-region: drag;  /* ← makes this area drag the window */
+    height:          100%;
+}
+
+.titlebar-orb
+{
+    width:           12px;
+    height:          12px;
+    border-radius:   50%;
+    background:      radial-gradient(circle at 35% 35%, #f0d060, #d4af37 60%, #7a5c00);
+    box-shadow:      0 0 6px rgba(212,175,85,0.5);
+    flex-shrink:     0;
+}
+
+.titlebar-title
+{
+    font-family:     'Cinzel', serif;
+    font-size:       12px;
+    font-weight:     600;
+    color:           var(--gold, #d4af37);
+    letter-spacing:  0.12em;
+    text-transform:  uppercase;
+}
+
+.titlebar-sub
+{
+    font-family:     'Cormorant Garamond', serif;
+    font-size:       11px;
+    color:           var(--silver-Kawaii);
+    letter-spacing:  0.08em;
+    font-style:      italic;
+}
+
+/* Window buttons — NOT draggable */
+.titlebar-controls
+{
+    display:             flex;
+    align-items:         center;
+    height:              100%;
+    -webkit-app-region:  no-drag;
+}
+
+.tb-btn {
+    width:           46px;
+    height:          38px;
+    border:          none;
+    background:      transparent;
+    color:           rgba(212,175,85,0.6);
+    font-size:       14px;
+    cursor:          pointer;
+    transition:      background 0.15s, color 0.15s;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+}
+
+.tb-btn:hover {
+    background: rgba(212,175,85,0.08);
+    color:      var(--gold, #d4af37);
+}
+
+.tb-btn.close:hover {
+    background: rgba(248, 113, 113, 0.18);
+    color:      #f87171;
+}
+
+/* Push app-shell down to clear the title bar */
+.app-shell {
+    padding-top: 38px;
+}
+
+
 /* ============================================================
    EMPTY STATES
 ============================================================ */

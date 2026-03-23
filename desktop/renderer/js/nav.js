@@ -1,5 +1,5 @@
 /* ============================================================
-   nav.js — Section navigation + keyboard shortcuts
+   nav.js — Section navigation + keyboard shortcuts + title bar
 ============================================================ */
 
 const SECTIONS = {
@@ -13,11 +13,13 @@ const SECTIONS = {
 
 let currentSection = 'news'
 
-function navigateTo (key) {
+function navigateTo (key)
+{
     if (!SECTIONS[key]) return
 
     // Hide all sections
-    Object.keys(SECTIONS).forEach(k => {
+    Object.keys(SECTIONS).forEach(k =>
+    {
         const el = document.getElementById(`section-${k}`)
         if (el) el.classList.remove('visible')
     })
@@ -27,7 +29,8 @@ function navigateTo (key) {
     if (target) target.classList.add('visible')
 
     // Update nav items
-    document.querySelectorAll('.nav-item').forEach(item => {
+    document.querySelectorAll('.nav-item').forEach(item =>
+    {
         item.classList.toggle('active', item.dataset.section === key)
     })
 
@@ -39,17 +42,20 @@ function navigateTo (key) {
 }
 
 // Sidebar click
-document.querySelectorAll('.nav-item').forEach(item => {
+document.querySelectorAll('.nav-item').forEach(item =>
+{
     item.addEventListener('click', () => navigateTo(item.dataset.section))
 })
 
 // Menu shortcuts from main process
-if (window.api && window.api.onNav) {
+if (window.api?.onNav)
+{
     window.api.onNav(section => navigateTo(section))
 }
 
 // Keyboard shortcuts within renderer
-document.addEventListener('keydown', e => {
+document.addEventListener('keydown', e =>
+{
     if (e.ctrlKey) {
         const map = {
             '1': 'news',
@@ -61,10 +67,23 @@ document.addEventListener('keydown', e => {
         }
         if (map[e.key]) { e.preventDefault(); navigateTo(map[e.key]) }
     }
-    if (e.ctrlKey && e.key === 'k') {
+    if (e.ctrlKey && e.key === 'k')
+    {
         e.preventDefault()
         document.getElementById('global-search')?.focus()
     }
+})
+
+// ── Custom title bar controls ────────────────────────────────
+document.getElementById('tb-min')?.addEventListener('click',   () => window.api.winMinimize())
+document.getElementById('tb-max')?.addEventListener('click',   () => window.api.winMaximize())
+document.getElementById('tb-close')?.addEventListener('click', () => window.api.winClose())
+
+// Swap ▢ ↔ ❐ icon based on maximise state
+window.api?.onWinMaximized(isMax =>
+{
+    const btn = document.getElementById('tb-max')
+    if (btn) btn.innerHTML = isMax ? '&#10697;' : '&#9633;'
 })
 
 // Expose for app.js
