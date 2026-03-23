@@ -243,8 +243,8 @@ html, body
     gap: 11px;
     padding: 9px 12px;
     border-radius: 10px;
-    cursor: pointer;
-    color: var(--silver-dim);
+    cursor: pointer;       /*var(--silver-dim);*/
+    color: var(--silver-Kawaii);
     font-family: var(--font-body);
     font-size: 22px;
     font-weight: 400;
