@@ -645,48 +645,132 @@ html, body
 
 
 
-/* ── Article full content typography ─────────────────── */
-/* ── Article full content typography ─────────────────── */
-.article-full-content p {
-    margin: 0 0 1.2em 0;
-    color: var(--silver-bright);
-    font-size: 17px;
-    line-height: 1.9;
+/* ── Celestial Manuscript — Article Typography ─────────── */
+.article-full-content
+{
+    font-family: var(--font-body);
+    font-size: 18px;
+    line-height: 2.0;
+    color: var(--silver-Kawaii);
+    max-width: 860px;
 }
 
+.article-full-content p
+{
+    margin: 0 0 1.4em 0;
+    text-indent: 1.5em;
+}
+
+.article-full-content p:first-of-type
+{
+    text-indent: 0;
+}
+
+/* Drop cap — gold glowing first letter */
+.article-full-content p:first-of-type::first-letter
+{
+    font-family: var(--font-title);
+    font-size: 3.8em;
+    line-height: 0.75;
+    float: left;
+    margin: 4px 12px 0 0;
+    color: var(--gold-bright);
+    text-shadow: 0 0 18px var(--gold-glow), 0 0 40px rgba(240, 208, 112, 0.25);
+}
+
+/* Headings — uppercase, gold, with glowing underline */
 .article-full-content h1,
 .article-full-content h2,
-.article-full-content h3 {
+.article-full-content h3
+{
     font-family: var(--font-title);
     color: var(--gold-bright);
-    margin: 1.4em 0 0.5em;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin: 1.8em 0 0.6em;
+    font-size: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(240, 208, 112, 0.22);
+    text-shadow: 0 0 16px var(--gold-glow);
 }
 
+/* Links — teal with animated gold hover */
 .article-full-content a
 {
     color: var(--teal-bright);
-    text-decoration: underline;
-    text-underline-offset: 3px;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(77, 184, 160, 0.45);
+    transition: color 0.22s, border-color 0.22s, text-shadow 0.22s;
 }
 
-.article-full-content a:hover { color: var(--gold-bright); }
+.article-full-content a:hover
+{
+    color: var(--gold-bright);
+    border-color: rgba(240, 208, 112, 0.60);
+    text-shadow: 0 0 12px var(--gold-glow);
+}
 
+/* Images — framed with gold border glow */
+.article-full-content img {
+    max-width: 100%;
+    border-radius: 10px;
+    margin: 18px 0;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55), 0 0 24px rgba(240, 208, 112, 0.07);
+    display: block;
+}
+
+/* Lists */
 .article-full-content ul,
 .article-full-content ol
 {
-    padding-left: 1.4em;
-    margin-bottom: 1em;
+    padding-left: 1.6em;
+    margin: 0 0 1.4em 0;
     color: var(--silver-Kawaii);
 }
 
-.article-full-content li { margin-bottom: 0.4em; }
-
-.article-full-content img {
-    max-width: 100%;
-    border-radius: 8px;
-    margin: 12px 0;
+.article-full-content li
+{
+    margin-bottom: 0.5em;
+    text-indent: 0;
 }
+
+/* Blockquotes — frost teal left bar */
+.article-full-content blockquote
+{
+    margin: 1.6em 0;
+    padding: 12px 20px;
+    border-left: 3px solid var(--teal-bright);
+    background: rgba(77, 184, 160, 0.05);
+    border-radius: 0 8px 8px 0;
+    color: var(--silver-mid);
+    font-style: italic;
+    font-size: 17px;
+}
+
+/* Horizontal rules — gold gradient divider */
+.article-full-content hr {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold) 30%, var(--teal-bright) 70%, transparent);
+    opacity: 0.35;
+    margin: 2em 0;
+}
+
+/* Strong / bold */
+.article-full-content strong
+{
+    color: var(--gold-warm);
+    font-weight: 600;
+}
+
+/* Italic / em */
+.article-full-content em
+{
+    color: var(--silver-dim);
+    font-style: italic;
+}
+
 
 /* ── Favourites tabs ──────────────────────── */
 .fav-tabs {

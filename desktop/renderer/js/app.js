@@ -467,17 +467,20 @@ function malCardHTML (anime)
 
 function showAnimeDetail (anime)
 {
-    const img     = anime.images?.jpg?.large_image_url
-        || anime.images?.jpg?.image_url || ''
+    const img            = anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || ''
     const score   = anime.score    ? `⭐ ${anime.score}`     : 'N/A'
     const eps     = anime.episodes ? `${anime.episodes} eps` : '?'
     const status  = anime.status   || '—'
-    const aired   = anime.aired?.string || '—'
-    const genres  = anime.genres?.map(g => g.name).join(', ')  || '—'
-    const studios = anime.studios?.map(s => s.name).join(', ') || '—'
-    const syn     = anime.synopsis || 'No synopsis available.'
-    const trailer = anime.trailer?.embed_url || null
-    const saved   = isFavAnime(anime.mal_id)
+    const aired          = anime.aired?.string || '—'
+    const genres         = anime.genres?.map(g => g.name).join(', ')  || '—'
+    const studios        = anime.studios?.map(s => s.name).join(', ') || '—'
+    const syn            = anime.synopsis || 'No synopsis available.'
+    const trailer        = anime.trailer?.embed_url || null
+    const saved          = isFavAnime(anime.mal_id)
+
+    // Extract video ID from Jikan embed URL (youtube.com/embed/ID)
+    const videoId  = trailer?.match(/embed\/([^?&/]+)/)?.[1] || null
+    const watchUrl = videoId ? `https://www.youtube.com/watch?v=${videoId}` : null
 
     malOutput.innerHTML = `
     <div class="glass-card">
@@ -500,12 +503,11 @@ function showAnimeDetail (anime)
 
       <div class="card-body">
         <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;">
-          ${img
-        ? `<img src="${escHtml(img)}" alt="${escHtml(anime.title || '')}"
-                   style="width:170px;height:240px;object-fit:cover;
-                          border-radius:10px;border:1px solid var(--border);
-                          flex-shrink:0;box-shadow:0 8px 32px rgba(0,0,0,0.5);">`
-        : ''}
+          ${img ? `
+          <img src="${escHtml(img)}" alt="${escHtml(anime.title || '')}"
+               style="width:170px;height:240px;object-fit:cover;
+                      border-radius:10px;border:1px solid var(--border);
+                      flex-shrink:0;box-shadow:0 8px 32px rgba(0,0,0,0.5);">` : ''}
           <div style="flex:1;min-width:200px;">
             <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
               <span class="badge">${escHtml(anime.type || 'Anime')}</span>
@@ -514,13 +516,16 @@ function showAnimeDetail (anime)
               <span class="badge">${eps}</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Aired</span><span>${escHtml(aired)}</span>
+              <span class="detail-label">Aired</span>
+              <span>${escHtml(aired)}</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Genres</span><span>${escHtml(genres)}</span>
+              <span class="detail-label">Genres</span>
+              <span>${escHtml(genres)}</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Studios</span><span>${escHtml(studios)}</span>
+              <span class="detail-label">Studios</span>
+              <span>${escHtml(studios)}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Rating</span>
@@ -546,25 +551,28 @@ function showAnimeDetail (anime)
           ${escHtml(syn)}
         </div>
 
-        ${trailer ? `
+        ${watchUrl ? `
         <div style="margin-top:24px;">
           <div class="card-heading" style="font-size:15px;margin-bottom:12px;">
             🎬 Trailer
           </div>
-          <div id="trailer-mount" style="width:100%;height:340px;"></div>
+          <div id="trailer-mount"
+               style="width:100%;height:420px;border-radius:10px;
+                      border:1px solid var(--border);overflow:hidden;">
+          </div>
         </div>` : ''}
       </div>
     </div>`
 
-    // ── Trailer: must use createElement, not innerHTML ────────
-    if (trailer)
-    {
+    // ── Trailer — createElement required, innerHTML webviews are ignored by Electron
+    // ── Load full watch page, not embed URL — embed URLs always give Error 153
+    if (watchUrl) {
         const wv = document.createElement('webview')
-        wv.src       = trailer.split('?')[0]
+        wv.src       = watchUrl
         wv.partition = 'persist:trailers'
         wv.setAttribute('useragent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
         wv.setAttribute('allowpopups', '')
-        wv.style.cssText = 'width:100%;height:340px;border:1px solid var(--border);border-radius:10px;display:block;'
+        wv.style.cssText = 'width:100%;height:420px;display:block;'
         const mount = $('trailer-mount')
         if (mount) mount.appendChild(wv)
     }
@@ -581,6 +589,7 @@ function showAnimeDetail (anime)
         btn.title         = now ? 'Remove from favourites' : 'Save to favourites'
     })
 }
+
 
 async function searchMAL (query)
 {
