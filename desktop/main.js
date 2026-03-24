@@ -55,7 +55,7 @@ function createWindow ()
                         "style-src   'self' 'unsafe-inline' https://fonts.googleapis.com",
                         "font-src    'self' https://fonts.gstatic.com data:",
                         "img-src     * data: blob:",       // ← * allows ANN/MAL/CDN images
-                        "connect-src 'self' http://localhost:3000 https:",
+                        "connect-src 'self' http://localhost:3001 https:",
                         "frame-src   *",
                         "child-src   *",
                         "media-src   *"
