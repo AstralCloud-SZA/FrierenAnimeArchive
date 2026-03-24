@@ -40,7 +40,7 @@ contextBridge.exposeInMainWorld('api',
         {
             try
             {
-                const resp = await fetch(`http://localhost:3000${path}`)
+                const resp = await fetch(`http://localhost:3001${path}`)
                 const data = await resp.json()
                 return { ok: resp.ok, data }
             }
