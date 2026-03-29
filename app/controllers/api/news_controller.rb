@@ -23,7 +23,7 @@ module Api
         NewsFetcher.refresh
       end
 
-      articles = Article.order(published_at: :desc).limit(20)
+      articles = Article.order(published_at: :desc).limit(60)
       render json: articles.as_json(
         only: [ :id, :title, :summary, :source_name, :url, :image_url, :published_at ]
       )
@@ -42,7 +42,7 @@ module Api
 
       NewsFetcher.refresh
 
-      articles = Article.order(published_at: :desc).limit(20)
+      articles = Article.order(published_at: :desc).limit(60)
       Rails.logger.info "✅ News refresh complete: #{articles.count} articles loaded"
 
       render json: articles.as_json(
