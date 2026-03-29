@@ -1,11 +1,28 @@
 # app/controllers/api/news_controller.rb
+# ═══════════════════════════════════════════════════════════
+#  News Controller
+#  Responsibilities:
+#    - index   : return cached articles (auto-seed if empty)
+#    - refresh : wipe DB + re-fetch live from ANN RSS (POST)
+#    - show    : single article by ID
+#    - fetch_content : fetch + parse full article body via
+#                      Readability for the in-app reader
+# ═══════════════════════════════════════════════════════════
+
 require 'open-uri'
 require 'readability'
 
 module Api
   class NewsController < ApplicationController
+
+    # GET /api/news
+    # Returns cached articles. Auto-seeds on first run only.
+    # For a forced live refresh, use POST /api/news/refresh.
     def index
-      NewsFetcher.refresh if Article.count < 5
+      if Article.none?
+        NewsFetcher.refresh
+      end
+
       articles = Article.order(published_at: :desc).limit(20)
       render json: articles.as_json(
         only: [ :id, :title, :summary, :source_name, :url, :image_url, :published_at ]
@@ -15,6 +32,28 @@ module Api
       render json: stub_news
     end
 
+    # POST /api/news/refresh
+    # Wipes the articles table and fetches a fresh batch from
+    # ANN RSS. Called by the "Load News" button in the Electron
+    # renderer — guarantees fresh content on every button press.
+    def refresh
+      Rails.logger.info "🗑  News refresh: wiping #{Article.count} articles"
+      Article.delete_all
+
+      NewsFetcher.refresh
+
+      articles = Article.order(published_at: :desc).limit(20)
+      Rails.logger.info "✅ News refresh complete: #{articles.count} articles loaded"
+
+      render json: articles.as_json(
+        only: [ :id, :title, :summary, :source_name, :url, :image_url, :published_at ]
+      )
+    rescue => e
+      Rails.logger.error "News refresh error: #{e.message}"
+      render json: { error: e.message }, status: :internal_server_error
+    end
+
+    # GET /api/news/:id
     def show
       article = Article.find(params[:id])
       render json: article.as_json(
@@ -27,7 +66,9 @@ module Api
       render json: { error: e.message }, status: :internal_server_error
     end
 
-    # ── NEW: fetch and parse full article content ────────────
+    # GET /api/news/content?url=<encoded_url>
+    # Fetches and parses the full article body using Readability.
+    # Powers the in-app article reader in the Electron renderer.
     def fetch_content
       url = params[:url]
       return render json: { error: 'No URL provided' }, status: :bad_request if url.blank?
@@ -60,5 +101,6 @@ module Api
           published_at: 1.week.ago, url: "https://rubyonrails.org", image_url: nil }
       ]
     end
+
   end
 end

@@ -7,9 +7,12 @@ Rails.application.routes.draw do
     get "health", to: "health#index"
 
     # News
+    # ⚠️  collection routes (content, refresh) must be declared
+    #     before resources so they are never matched as :id params.
     resources :news, only: [ :index, :show ] do
       collection do
-        get "content", to: "news#fetch_content"   # ← adds GET /api/news/content
+        get  "content", to: "news#fetch_content"  # GET  /api/news/content?url=…
+        post "refresh", to: "news#refresh"         # POST /api/news/refresh
       end
     end
 
@@ -26,7 +29,7 @@ Rails.application.routes.draw do
 
     # Future: MAL OAuth
     namespace :mal do
-      get "connect", to: "oauth#connect"
+      get "connect",  to: "oauth#connect"
       get "callback", to: "oauth#callback"
       get "me",       to: "users#me"
     end
