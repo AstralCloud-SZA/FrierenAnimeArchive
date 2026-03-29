@@ -1,0 +1,9 @@
+# Ignore dev files
+node_modules/
+src/
+.gitignore
+.nyc_output/
+coverage/
+.nyc_output/
+npm-debug.log
+.nyc_output/
