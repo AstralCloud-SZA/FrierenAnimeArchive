@@ -374,14 +374,16 @@ async function loadNews ()
     newsReader.style.display = 'none'
     newsList.style.display   = 'block'
 
-    const result = await API.get('/api/news')
+    // POST to /api/news/refresh — wipes DB and re-fetches live
+    // from ANN RSS so every button press returns fresh articles.
+    const result = await API.post('/api/news/refresh')
 
     if (!result.ok)
     {
         newsList.innerHTML = emptyState(
             '❄️',
             'Could not reach the Rails API.<br>Make sure <code>rails s</code> is running.',
-            '"Even the greatest mage cannot conjure what is not there."'
+            '\"Even the greatest mage cannot conjure what is not there.\"'
         )
         setApiStatus(false)
     }
@@ -394,7 +396,7 @@ async function loadNews ()
             newsList.innerHTML = emptyState(
                 '🌿',
                 'No articles in the archive yet.',
-                '"A quiet world is still a world worth wandering."'
+                '\"A quiet world is still a world worth wandering.\"'
             )
         }
         else
@@ -423,13 +425,18 @@ async function loadNews ()
                 })
             })
 
-            newsList.querySelectorAll('.news-card').forEach(card => {
-                card.addEventListener('click', e => {
+            newsList.querySelectorAll('.news-card').forEach(card =>
+            {
+                card.addEventListener('click', e =>
+                {
                     if (e.target.classList.contains('fav-star-btn')) return
-                    try {
+                    try
+                    {
                         const article = JSON.parse(unescHtml(card.dataset.article))
                         showArticleDetail(article)
-                    } catch (err) {
+                    }
+                    catch (err)
+                    {
                         console.error('[News] card parse error:', err)
                     }
                 })

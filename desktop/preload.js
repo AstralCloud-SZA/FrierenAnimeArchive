@@ -52,8 +52,7 @@ contextBridge.exposeInMainWorld('api',
         },
 
         // ── Rails API — Generic POST ─────────────────────────
-        // Currently unused but wired for future features
-        // (e.g. saving user preferences, OAuth token exchange).
+        // Used for news refresh (wipe DB + re-fetch from RSS).
         async post (path, body = {})
         {
             try
@@ -76,8 +75,6 @@ contextBridge.exposeInMainWorld('api',
         // ── Open URL in OS default browser ───────────────────
         // Used for: YouTube trailers, external article links,
         // and any URL that should not load inside the app.
-        // Calls Electron shell.openExternal which hands the URL
-        // to the OS — opens Chrome, Firefox, etc. as appropriate.
         openExternal (url)
         {
             if (!url) return
@@ -92,17 +89,11 @@ contextBridge.exposeInMainWorld('api',
         },
 
         // ── Custom title bar — window controls ───────────────
-        // The frameless window (frame: false in main.js) has no
-        // OS title bar, so these IPC calls drive the HTML buttons
-        // in the .titlebar element in index.html.
         winMinimize () { ipcRenderer.send('win-minimize') },
-        winMaximize () { ipcRenderer.send('win-maximize') },  // toggles max ↔ restore
+        winMaximize () { ipcRenderer.send('win-maximize') },
         winClose ()    { ipcRenderer.send('win-close')    },
 
         // ── Custom title bar — maximise state listener ───────
-        // main.js fires 'win-maximized' (true/false) whenever the
-        // window is maximised or restored. nav.js uses this to
-        // swap the ▢ / ❐ icon on the maximise button.
         onWinMaximized (callback)
         {
             if (typeof callback !== 'function') return
@@ -110,9 +101,6 @@ contextBridge.exposeInMainWorld('api',
         },
 
         // ── Navigation events from main process ──────────────
-        // main.js can send 'navigate' + section key via IPC.
-        // nav.js registers this callback and calls navigateTo().
-        // Triggered by Ctrl+1…6 shortcuts wired in nav.js itself.
         onNav (callback)
         {
             if (typeof callback !== 'function') return
