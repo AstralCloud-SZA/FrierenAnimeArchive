@@ -25,6 +25,14 @@ const path = require('node:path')
 
 const isDev = process.env.NODE_ENV === 'development'
 
+// ── Redirect Electron cache to a local, writable path ────
+// Prevents "Unable to move the cache: Access is denied (0x5)"
+// errors caused by Electron trying to write to a locked or
+// permission-restricted AppData location. Keeping the cache
+// inside the project directory ensures write access is always
+// available during development.
+app.setPath('userData', path.join(__dirname, '.electron-cache'))
+
 // ── Create main window ───────────────────────────────────
 function createWindow ()
 {
