@@ -32,7 +32,7 @@ class NewsFetcher
     feed  = Feedjira.parse(body)
     saved = 0
 
-    feed.entries.first(20).each do |entry|
+    feed.entries.first(57).each do |entry|
       next if entry.url.blank? || entry.title.blank?
 
       Article.find_or_create_by(url: entry.url.strip) do |article|
