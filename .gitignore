@@ -64,15 +64,18 @@ Thumbs.db
 *.swo
 *~
 
-# Electron build output
+# Electron build output (Forge)
+desktop/out/
 desktop/dist/
 desktop/*.blockmap
 desktop/latest-*.yml
+desktop/.webpack/
 
 # Yarn/NPM
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+desktop/package-lock.json
 
 # Misc
 *.rbc
