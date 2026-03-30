@@ -73,6 +73,9 @@ function startRails()
         ? path.join(railsDir, 'vendor', 'bundle', 'ruby', '3.4.0')
         : undefined
 
+    // GEM_PATH must include BOTH the vendored gems AND the Ruby
+    // runtime's built-in stdlib gems (e.g. json, psych, stringio).
+    // Without the stdlib path, boot-time requires fail.
     const gemPath = app.isPackaged
         ? [
             path.join(railsDir, 'vendor', 'bundle', 'ruby', '3.4.0'),
@@ -82,6 +85,21 @@ function startRails()
 
     logStream.write(`bundlePath : ${bundlePath}\n`)
     logStream.write(`gemHome    : ${gemHome}\n`)
+    logStream.write(`gemPath    : ${gemPath}\n`)
+
+    // ── Scrub inherited Ruby / Bundler env vars ───────────
+    // A dev machine's BUNDLE_PATH / GEM_HOME leaks into the
+    // spawned process and can override our packaged-path vars,
+    // causing GemNotFound even when vendor/bundle is intact.
+    // We delete every Bundler/RubyGems key before applying ours.
+    const inheritedEnv = { ...process.env }
+    const RUBY_ENV_SCRUB = [
+        'BUNDLE_PATH', 'BUNDLE_GEMFILE', 'BUNDLE_BIN',
+        'BUNDLE_APP_CONFIG', 'BUNDLE_WITHOUT', 'BUNDLE_FROZEN',
+        'GEM_HOME', 'GEM_PATH', 'RUBYOPT', 'RUBYLIB',
+        'RUBYARCHDIR', 'GEM_SPEC_CACHE'
+    ]
+    for (const key of RUBY_ENV_SCRUB) delete inheritedEnv[key]
 
     railsProcess = spawn(
         rubyExe,
@@ -91,15 +109,20 @@ function startRails()
             windowsHide: true,
             stdio:       'pipe',
             env: {
-                ...process.env,
+                ...inheritedEnv,                             // clean base — no stale Ruby env
                 RAILS_ENV:           'production',
                 BUNDLE_GEMFILE:      path.join(railsDir, 'Gemfile'),
                 BUNDLE_PATH:         bundlePath,
                 BUNDLE_WITHOUT:      'development:test',
+                BUNDLE_APP_CONFIG:   path.join(railsDir, '.bundle'), // points at config written by forge hook
                 GEM_HOME:            gemHome,
                 GEM_PATH:            gemPath,
                 SECRET_KEY_BASE:     'electron_offline_secret_frieren_archive_000000000',
-                RAILS_LOG_TO_STDOUT: '1'
+                RAILS_LOG_TO_STDOUT: '1',
+                // Bootsnap writes a compile cache on first boot.
+                // resources/ is read-only in a packaged build, so we
+                // redirect the cache to userData which is always writable.
+                BOOTSNAP_CACHE_DIR:  path.join(app.getPath('userData'), 'bootsnap-cache')
             }
         }
     )
@@ -127,6 +150,7 @@ function startRails()
     })
 }
 
+// ── Health-check polling ──────────────────────────────────
 // Poll /up every 500 ms — open the window once Rails responds 200.
 // Falls through after 40 retries (20 s) so the app still opens
 // even if Rails fails, letting the user inspect the log.
