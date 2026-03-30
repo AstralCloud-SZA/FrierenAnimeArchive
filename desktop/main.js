@@ -1,58 +1,88 @@
-// main.js
-// ═══════════════════════════════════════════════════════════
-//  Frieren Archive — Electron Main Process
-//  Responsibilities:
-//    - Create + configure the BrowserWindow (frameless)
-//    - Custom title bar IPC (minimise / maximise / close)
-//    - CSP: allow fetch → Rails API, pass-through for webview
-//    - Strip Referer from image requests (CDN hotlink fix)
-//    - External link routing (open in OS browser)
-//    - App lifecycle (ready, activate, window-all-closed)
-//
-//  Notes:
-//    - frame: false removes the OS title bar entirely.
-//      The custom title bar lives in index.html (.titlebar).
-//    - Menu.setApplicationMenu(null) removes the native menu
-//      bar on Windows/Linux. Navigation is handled in nav.js
-//      via Ctrl+1…6 keyboard shortcuts and the sidebar.
-//    - webSecurity: false is intentional — required for
-//      cross-origin image loading (ANN, MAL CDNs) and
-//      webview content (DuckDuckGo, 9Anime).
-// ═══════════════════════════════════════════════════════════
-
 const { app, BrowserWindow, session, Menu, shell, ipcMain } = require('electron')
 const path = require('node:path')
+const { spawn } = require('child_process')
+const http = require('http')
 
 const isDev = process.env.NODE_ENV === 'development'
 
-// ── Redirect Electron cache to a local, writable path ────
-// Prevents "Unable to move the cache: Access is denied (0x5)"
-// errors caused by Electron trying to write to a locked or
-// permission-restricted AppData location. Keeping the cache
-// inside the project directory ensures write access is always
-// available during development.
 app.setPath('userData', path.join(__dirname, '.electron-cache'))
 
-// ── Create main window ───────────────────────────────────
-function createWindow ()
+// ═══════════════════════════════════════════════════════════
+//  Rails API — Auto Start
+// ═══════════════════════════════════════════════════════════
+let railsProcess
+
+function getRailsPaths()
 {
-    // ── Remove native menu bar entirely ──────────────────
-    // Navigation is handled in-app via the sidebar + Ctrl+1…6.
-    // Keeping the OS menu would show a themed mismatch strip
-    // above the custom title bar.
+    if (app.isPackaged)
+    {
+        return {
+            rubyExe: path.join(process.resourcesPath, 'ruby-runtime', 'bin', 'ruby.exe'),
+            railsDir: path.join(process.resourcesPath, 'rails-api')
+        }
+    }
+    return {
+        rubyExe: 'ruby',                        // system Ruby in dev
+        railsDir: path.join(__dirname, '..')    // repo root in dev
+    }
+}
+
+function startRails()
+{
+    const { rubyExe, railsDir } = getRailsPaths()
+
+    railsProcess = spawn(rubyExe, ['bin/rails', 'server', '-p', '3001', '-e', 'production'], {
+        cwd: railsDir,
+        windowsHide: true,
+        stdio: 'pipe',
+        env: {
+            ...process.env,
+            RAILS_ENV: 'production',
+            BUNDLE_PATH: app.isPackaged
+                ? path.join(process.resourcesPath, 'rails-api', 'vendor', 'bundle')
+                : undefined
+        }
+    })
+
+    railsProcess.stdout.on('data', d => console.log('[Rails]', d.toString()))
+    railsProcess.stderr.on('data', d => console.error('[Rails ERR]', d.toString()))
+    railsProcess.on('error', err => console.error('[Rails FAILED]', err))
+}
+
+function waitForRails(callback, retries = 30)
+{
+    http.get('http://localhost:3001/up', res => {
+        if (res.statusCode === 200) {
+            console.log('[Rails] Ready!')
+            callback()
+        } else retry()
+    }).on('error', retry)
+
+    function retry() {
+        if (retries <= 0) { callback(); return }
+        setTimeout(() => waitForRails(callback, retries - 1), 500)
+    }
+}
+
+app.on('before-quit', () =>
+{
+    if (railsProcess) {
+        railsProcess.kill()
+        railsProcess = null
+    }
+})
+
+// ═══════════════════════════════════════════════════════════
+//  Create main window
+// ═══════════════════════════════════════════════════════════
+function createWindow()
+{
     Menu.setApplicationMenu(null)
 
-    // ── Content Security Policy ────────────────────────────
-    // Only apply CSP to our local file:// pages.
-    // External requests (webview, fonts, etc.) pass through
-    // untouched so DuckDuckGo / 9Anime webviews load freely.
-    session.defaultSession.webRequest.onHeadersReceived((details, callback) =>
-    {
-        if (!details.url.startsWith('file://'))
-        {
+    session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+        if (!details.url.startsWith('file://')) {
             return callback({ responseHeaders: details.responseHeaders })
         }
-
         callback({
             responseHeaders: {
                 ...details.responseHeaders,
@@ -62,7 +92,7 @@ function createWindow ()
                         "script-src  'self' 'unsafe-inline' 'unsafe-eval'",
                         "style-src   'self' 'unsafe-inline' https://fonts.googleapis.com",
                         "font-src    'self' https://fonts.gstatic.com data:",
-                        "img-src     * data: blob:",       // ← * allows ANN/MAL/CDN images
+                        "img-src     * data: blob:",
                         "connect-src 'self' http://localhost:3001 https:",
                         "frame-src   *",
                         "child-src   *",
@@ -73,16 +103,10 @@ function createWindow ()
         })
     })
 
-    // ── Intercept image requests — strip Referer header ───
-    // ANN and most anime news CDNs block hotlinks when a
-    // Referer is present. Removing it makes requests look
-    // like direct browser visits, which CDNs allow.
     session.defaultSession.webRequest.onBeforeSendHeaders(
         { urls: ['https://*/*', 'http://*/*'] },
-        (details, callback) =>
-        {
+        (details, callback) => {
             const headers = { ...details.requestHeaders }
-            // Only strip Referer from image/media requests, not API calls
             if (
                 headers['Accept']?.includes('image') ||
                 /\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i.test(details.url)
@@ -95,63 +119,45 @@ function createWindow ()
     )
 
     const mainWindow = new BrowserWindow({
-        width:           1400,
-        height:          900,
-        minWidth:        960,
-        minHeight:       600,
+        width: 1400,
+        height: 900,
+        minWidth: 960,
+        minHeight: 600,
         backgroundColor: '#020408',
-        frame:           false,      // ← frameless — custom title bar in index.html
-        title:           'Frieren Archive',
+        frame: false,
+        title: 'Frieren Archive',
         webPreferences: {
-            preload:          path.join(__dirname, 'preload.js'),
+            preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
-            nodeIntegration:  false,
-            sandbox:          false,    // required for fetch() in preload
-            webviewTag:       true,     // required for <webview> elements
-            webSecurity:      false     // required for cross-origin images + webviews
+            nodeIntegration: false,
+            sandbox: false,
+            webviewTag: true,
+            webSecurity: false
         }
     })
 
     mainWindow.loadFile('index.html')
 
-    // ── DevTools (dev mode only) ─────────────────────────
-    if (isDev)
-    {
-        mainWindow.webContents.openDevTools({ mode: 'detach' })
-    }
+    if (isDev) mainWindow.webContents.openDevTools({ mode: 'detach' })
 
-    // ── External links → OS default browser ─────────────
-    // Prevents navigation inside the main BrowserWindow.
-    // All external URLs (articles, trailers, etc.) are handed
-    // to the OS and open in the user's default browser instead.
-    mainWindow.webContents.setWindowOpenHandler(({ url }) =>
-    {
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
         shell.openExternal(url)
         return { action: 'deny' }
     })
 
-    mainWindow.webContents.on('will-navigate', (event, url) =>
-    {
-        if (!url.startsWith('file://'))
-        {
+    mainWindow.webContents.on('will-navigate', (event, url) => {
+        if (!url.startsWith('file://')) {
             event.preventDefault()
             shell.openExternal(url)
         }
     })
 
-    // ── Custom title bar — window control IPC ────────────
-    // The HTML title bar (.titlebar in index.html) sends these
-    // IPC messages via preload.js (winMinimize / winMaximize /
-    // winClose). Maximise toggles between maximised and restored.
     ipcMain.on('win-minimize', () => mainWindow.minimize())
-    ipcMain.on('win-maximize', () =>
-    {
+    ipcMain.on('win-maximize', () => {
         mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize()
     })
     ipcMain.on('win-close', () => mainWindow.close())
 
-    // Notify renderer when maximise state changes so nav.js
-    // can swap the ▢ / ❐ icon on the maximise button.
     mainWindow.on('maximize',   () => mainWindow.webContents.send('win-maximized', true))
     mainWindow.on('unmaximize', () => mainWindow.webContents.send('win-maximized', false))
 
@@ -161,22 +167,17 @@ function createWindow ()
 // ═══════════════════════════════════════════════════════════
 //  App lifecycle
 // ═══════════════════════════════════════════════════════════
+app.whenReady().then(() => {
+    startRails()
+    waitForRails(() => {
+        createWindow()
+    })
 
-app.whenReady().then(() =>
-{
-    createWindow()
-
-    // macOS: re-create window when dock icon is clicked
-    // and no windows are open.
-    app.on('activate', () =>
-    {
+    app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
 })
 
-// Quit on all windows closed — except macOS where apps
-// conventionally stay active until the user quits explicitly.
-app.on('window-all-closed', () =>
-{
+app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
 })
