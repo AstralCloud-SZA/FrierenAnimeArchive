@@ -20,21 +20,22 @@ test:
   <<: *default
   database: storage/test.sqlite3
 
-# Store production database in the storage/ directory, which by default
-# is mounted as a persistent Docker volume in config/deploy.yml.
+# In packaged Electron builds, storage/ is inside the read-only
+# resources' directory. Each DB path is overridden via ENV vars
+# that main.js points at the writable userData directory instead.
 production:
   primary:
     <<: *default
-    database: storage/production.sqlite3
+    database: <%= ENV.fetch("RAILS_DB_PATH",          "storage/production.sqlite3") %>
   cache:
     <<: *default
-    database: storage/production_cache.sqlite3
+    database: <%= ENV.fetch("RAILS_DB_CACHE_PATH",    "storage/production_cache.sqlite3") %>
     migrations_paths: db/cache_migrate
   queue:
     <<: *default
-    database: storage/production_queue.sqlite3
+    database: <%= ENV.fetch("RAILS_DB_QUEUE_PATH",    "storage/production_queue.sqlite3") %>
     migrations_paths: db/queue_migrate
   cable:
     <<: *default
-    database: storage/production_cable.sqlite3
+    database: <%= ENV.fetch("RAILS_DB_CABLE_PATH",    "storage/production_cable.sqlite3") %>
     migrations_paths: db/cable_migrate
