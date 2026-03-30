@@ -8,6 +8,7 @@
 //    - Strip Referer from image requests (CDN hotlink fix)
 //    - External link routing (open in OS browser)
 //    - Rails API auto-start + health-check wait
+//    - Loading screen while Rails boots
 //    - App lifecycle (ready, activate, window-all-closed)
 // ═══════════════════════════════════════════════════════════
 
@@ -173,9 +174,9 @@ function startRails()
 }
 
 // ── Health-check polling ──────────────────────────────────
-// Poll /up every 500 ms — open the window once Rails responds 200.
-// Falls through after 60 retries (30 s) so the app still opens
-// even if Rails fails, letting the user inspect the log.
+// Poll /up every 500 ms — swap loading → index once Rails
+// responds 200. Falls through after 60 retries (30 s) and
+// loads index anyway so the user can at least inspect the log.
 // Retry count raised from 40 → 60 to accommodate Bootsnap's
 // cold-cache compile time on first launch.
 function waitForRails(callback, retries = 60)
@@ -209,6 +210,10 @@ app.on('before-quit', () =>
 // ═══════════════════════════════════════════════════════════
 //  Create main window
 // ═══════════════════════════════════════════════════════════
+// Module-level reference so IPC handlers registered outside
+// createWindow() can still reach the window instance.
+let mainWindow = null
+
 function createWindow()
 {
     Menu.setApplicationMenu(null)
@@ -261,15 +266,15 @@ function createWindow()
         }
     )
 
-    const mainWindow = new BrowserWindow({
+    mainWindow = new BrowserWindow({
         width:           1400,
         height:          900,
         minWidth:        960,
         minHeight:       600,
         backgroundColor: '#020408',
         frame:           false,      // custom title bar in index.html
-        title:          'Frieren Archive',
-        icon:            path.join(__dirname,'Icon','f2.ico'),
+        title:           'Frieren Archive',
+        icon:            path.join(__dirname, 'Icon', 'frieren2.ico'),
         webPreferences: {
             preload:          path.join(__dirname, 'preload.js'),
             contextIsolation: true,
@@ -280,7 +285,11 @@ function createWindow()
         }
     })
 
-    mainWindow.loadFile('index.html')
+    // ── Loading screen ─────────────────────────────────────
+    // Show immediately so the user sees something while Rails
+    // boots. waitForRails() calls loadFile('index.html') once
+    // the API is ready, swapping out the loading screen.
+    mainWindow.loadFile('loading.html')
 
     if (isDev) mainWindow.webContents.openDevTools({ mode: 'detach' })
 
@@ -300,24 +309,11 @@ function createWindow()
         }
     })
 
-    // ── Custom title bar IPC ───────────────────────────────
-    ipcMain.on('win-minimize', () => mainWindow.minimize())
-    ipcMain.on('win-maximize', () =>
-    {
-        mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize()
-    })
-    ipcMain.on('win-close', () => mainWindow.close())
-
     // Push maximise state to renderer so nav.js can swap ▢ / ❐
     mainWindow.on('maximize',   () => mainWindow.webContents.send('win-maximized', true))
     mainWindow.on('unmaximize', () => mainWindow.webContents.send('win-maximized', false))
 
-    // ── Open Rails log in default text editor ─────────────
-    // Usage from DevTools console: window.api.openLog()
-    ipcMain.handle('open-log', () =>
-    {
-        shell.openPath(path.join(app.getPath('userData'), 'rails.log'))
-    })
+    mainWindow.on('closed', () => { mainWindow = null })
 
     return mainWindow
 }
@@ -327,8 +323,31 @@ function createWindow()
 // ═══════════════════════════════════════════════════════════
 app.whenReady().then(() =>
 {
+    // ── IPC handlers — registered once only ───────────────
+    // Registering inside createWindow() causes "second handler"
+    // errors if the window is ever re-created (e.g. macOS activate).
+    // All handlers that don't need a window reference live here.
+
+    ipcMain.handle('open-log', () =>
+    {
+        shell.openPath(path.join(app.getPath('userData'), 'rails.log'))
+    })
+
+    // Title bar controls reference mainWindow via the module-level var.
+    ipcMain.on('win-minimize', () => mainWindow?.minimize())
+    ipcMain.on('win-maximize', () =>
+    {
+        mainWindow?.isMaximized() ? mainWindow.unmaximize() : mainWindow?.maximize()
+    })
+    ipcMain.on('win-close', () => mainWindow?.close())
+
+    // ── Boot sequence ──────────────────────────────────────
+    // 1. Create window immediately (shows loading.html)
+    // 2. Start Rails in the background
+    // 3. Once Rails is healthy, swap to index.html
+    createWindow()
     startRails()
-    waitForRails(() => createWindow())
+    waitForRails(() => mainWindow?.loadFile('index.html'))
 
     // macOS: re-create window when dock icon clicked and no windows open
     app.on('activate', () =>
