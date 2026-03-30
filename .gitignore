@@ -1,12 +1,12 @@
 # See https://docs.github.com/en/get-started/git-basics/ignoring-files for more about ignoring files.
 
-# dependencies
+# ── Dependencies ──────────────────────────────────────────
 /.bundle
 /node_modules
 /desktop/node_modules
 /vendor/bundle
 
-# Ruby / Rails
+# ── Ruby / Rails ──────────────────────────────────────────
 db/*.sqlite3
 db/*.sqlite3-journal
 db/*.sqlite3-*
@@ -22,33 +22,33 @@ db/*.sqlite3-*
 /public/packs-test
 /public/system
 
-# Rails credentials
+# ── Rails credentials ─────────────────────────────────────
 /config/master.key
 /config/credentials.yml.enc
 /config/*.key
 
-# Environment variables
+# ── Environment variables ─────────────────────────────────
 .env*
 !.env.example
 
-# Runtime data
+# ── Runtime data ──────────────────────────────────────────
 pids
 *.pid
 *.seed
 *.seeds
 *.pid.lock
 
-# Testing
+# ── Testing ───────────────────────────────────────────────
 coverage/
 capybara-*.html
 /.rspec
 
-# Linters / Formatters
+# ── Linters / Formatters ──────────────────────────────────
 .rubocop-todo.yml
 .reek
 .flamegraph.svg
 
-# OS generated files
+# ── OS generated files ────────────────────────────────────
 .DS_Store
 .DS_Store?
 ._*
@@ -57,44 +57,56 @@ capybara-*.html
 ehthumbs.db
 Thumbs.db
 
-# IDE / Editor
+# ── IDE / Editor ──────────────────────────────────────────
 .idea/
 .vscode/
 *.swp
 *.swo
 *~
 
-# Electron build output (Forge)
-desktop/out/
+# ── Electron — unpacked build output ─────────────────────
+# The raw unpacked folder contains hundreds of loose .dll /
+# .pak / .exe files. Committing them to LFS wastes quota fast.
+# Only the compressed make/ outputs (installer + zip) are kept.
+desktop/out/Frieren Anime Archive-win32-x64/
+
+# ── Electron — Squirrel auto-generated metadata ───────────
+# RELEASES is regenerated on every build — not useful in VCS.
+desktop/out/make/squirrel.windows/RELEASES
+
+# ── Electron — other build artifacts ─────────────────────
 desktop/dist/
 desktop/*.blockmap
 desktop/latest-*.yml
 desktop/.webpack/
 desktop/.electron-cache/
 
-# Yarn/NPM
+# ── Yarn / NPM ────────────────────────────────────────────
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 desktop/package-lock.json
 
-# Misc
+# ── Misc ──────────────────────────────────────────────────
 *.rbc
-capybara-*.html
 *.rdb
 *.html
 
-# Electron — bundled Ruby runtime (binary, not source-controlled)
+# ── Electron — bundled Ruby runtime ───────────────────────
+# Binary, installed at build time — not source-controlled.
 desktop/ruby-runtime/
 desktop/rails-api-dist/
 
-# Electron — Rails API copy (sourced from repo root, not duplicated)
+# ── Electron — Rails API copy ─────────────────────────────
+# Sourced from the repo root at build time, not duplicated.
 desktop/rails-api/
 
-# Electron — vendored gems (installed at build time)
+# ── Electron — vendored gems ──────────────────────────────
+# Installed at build time via bundle install.
 desktop/vendor/
 vendor/bundle/
 
-# Bundler config (set locally per machine)
+# ── Bundler config ────────────────────────────────────────
+# Set locally per machine — never commit.
 .bundle/
 desktop/.bundle/
