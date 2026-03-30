@@ -30,7 +30,7 @@ bin/* text eol=lf
 *.bat text eol=crlf
 *.cmd text eol=crlf
 
-# Images and binaries (don't diff)
+# Icon and binaries (don't diff)
 *.png binary
 *.jpg binary
 *.jpeg binary
