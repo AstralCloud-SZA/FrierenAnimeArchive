@@ -29,14 +29,6 @@ html, body {
     -webkit-font-smoothing: antialiased;
 }
 
-/* ── Canvases ─────────────────────────────────────────
-   Layer order (back → front):
-     snow-canvas   z:0  — gold/frost snowfall
-     fx-canvas     z:1  — stars, shooting stars, aurora
-     .nebula        z:0  — CSS radial glow
-     .stage         z:2  — orb, title, progress
-     .crescent      z:2  — CSS moon halo behind orb
-────────────────────────────────────────────────────── */
 #snow-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.70; }
 #fx-canvas   { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
 
@@ -47,7 +39,6 @@ html, body {
             radial-gradient(ellipse at 50% 90%, rgba(77,184,160,0.05)  0%, transparent 55%);
 }
 
-/* ── Gold hairlines ── */
 .deco-top, .deco-bottom {
     position: fixed; left: 0; right: 0; height: 1px; z-index: 3;
     background: linear-gradient(90deg,
@@ -58,7 +49,6 @@ html, body {
 .deco-top    { top: 38px; }
 .deco-bottom { bottom: 0; }
 
-/* ── Constellation rings ── */
 .constellation {
     position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
     width: 200px; height: 200px; border-radius: 50%;
@@ -72,67 +62,24 @@ html, body {
 }
 
 /* ════════════════════════════════════════════════════
-   🌙 EFFECT 1 — CRESCENT MOON HALO
-   Pure CSS: a clipped arc behind the orb that breathes
+   🌙 CRESCENT MOON HALO — fixed: uses SVG arc so it
+   actually renders. The CSS conic-gradient approach
+   was clipped by the border-box paint algorithm.
 ════════════════════════════════════════════════════ */
-.crescent-wrap {
+.crescent-svg {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -54%);
-    width: 200px;
-    height: 200px;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 180px; height: 180px;
     z-index: 2;
     pointer-events: none;
-}
-
-/* Outer glow ring */
-.crescent-wrap::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 1.5px solid transparent;
-    /* Only paint the top ~200° arc — bottom hidden by gradient trick */
-    background:
-            linear-gradient(var(--bg-deep), var(--bg-deep)) padding-box,
-            conic-gradient(
-                    from 200deg,
-                    transparent       0deg,
-                    var(--gold)      40deg,
-                    var(--gold-bright) 80deg,
-                    var(--teal-bright) 120deg,
-                    var(--gold)      160deg,
-                    transparent      200deg
-            ) border-box;
     animation: crescent-breathe 5s ease-in-out infinite;
-    filter: blur(0.5px);
-}
-
-/* Inner softer halo ring */
-.crescent-wrap::after {
-    content: "";
-    position: absolute;
-    inset: 8px;
-    border-radius: 50%;
-    border: 1px solid transparent;
-    background:
-            linear-gradient(var(--bg-deep), var(--bg-deep)) padding-box,
-            conic-gradient(
-                    from 210deg,
-                    transparent       0deg,
-                    rgba(240,208,112,0.35) 30deg,
-                    rgba(240,208,112,0.55) 90deg,
-                    rgba(77,212,188,0.40)  130deg,
-                    rgba(240,208,112,0.25) 160deg,
-                    transparent       190deg
-            ) border-box;
-    animation: crescent-breathe 5s ease-in-out infinite 0.4s;
+    overflow: visible;
 }
 
 @keyframes crescent-breathe {
-    0%, 100% { opacity: 0.55; transform: rotate(0deg); }
-    50%       { opacity: 1.00; transform: rotate(4deg); }
+    0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) rotate(0deg);   }
+    50%       { opacity: 1.00; transform: translate(-50%, -50%) rotate(4deg);   }
 }
 
 /* ── Centre stage ── */
@@ -148,7 +95,6 @@ html, body {
     user-select: none;
 }
 
-/* Orb wrapper holds orb + crescent together */
 .orb-wrap {
     position: relative;
     width: 200px;
@@ -160,7 +106,6 @@ html, body {
     flex-shrink: 0;
 }
 
-/* ── Staff orb ── */
 .brand-orb {
     width: 64px;
     height: 64px;
@@ -202,7 +147,6 @@ html, body {
     }
 }
 
-/* ── Title ── */
 .brand-title {
     font-family: var(--font-brand);
     font-size: 28px;
@@ -224,10 +168,8 @@ html, body {
     margin-bottom: 36px;
 }
 
-/* ── Progress track ── */
 .progress-track {
-    width: 220px;
-    height: 2px;
+    width: 220px; height: 2px;
     background: rgba(240,208,112,0.10);
     border-radius: 999px;
     overflow: hidden;
@@ -235,8 +177,7 @@ html, body {
 }
 
 .progress-bar {
-    height: 100%;
-    width: 0%;
+    height: 100%; width: 0%;
     border-radius: 999px;
     background: linear-gradient(90deg, var(--gold), var(--gold-bright), var(--teal-bright));
     box-shadow: 0 0 10px var(--gold-glow);
@@ -244,12 +185,11 @@ html, body {
 }
 
 @keyframes progress-sweep {
-    0%   { width: 0%;  margin-left: 0%;    }
-    50%  { width: 65%; margin-left: 20%;   }
-    100% { width: 0%;  margin-left: 100%;  }
+    0%   { width: 0%;  margin-left: 0%;   }
+    50%  { width: 65%; margin-left: 20%;  }
+    100% { width: 0%;  margin-left: 100%; }
 }
 
-/* ── Status text ── */
 .status-text {
     font-family: var(--font-title);
     font-size: 13px;
