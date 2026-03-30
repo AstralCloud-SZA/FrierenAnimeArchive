@@ -64,7 +64,7 @@ module.exports = {
   packagerConfig: {
     asar: true,
     name: 'Frieren Anime Archive',
-    icon: './Icon/f2'
+    icon: './Icon/f1'
   },
 
   hooks: {
@@ -120,7 +120,7 @@ module.exports = {
       name:   '@electron-forge/maker-squirrel',
       config: {
         name:        'FrierenAnimeArchive',
-        setupIcon:  './Icon/f2.ico',
+        setupIcon:  './Icon/f1.ico',
         loadingGif:   undefined
       }
     },

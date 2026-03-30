@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Frieren Archive</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&family=Cormorant+Garamond:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --bg-deep:        #020408;
+            --gold:           #d1aa3a;
+            --gold-bright:    #f0d070;
+            --gold-warm:      #fae090;
+            --gold-pale:      #fdf0c8;
+            --gold-glow:      rgba(240, 208, 112, 0.45);
+            --gold-glow-hard: rgba(240, 208, 112, 0.75);
+            --gold-panel:     rgba(240, 208, 112, 0.06);
+            --silver:         #f5e8d0;
+            --silver-Kawaii:  #DBDDDF;
+            --silver-mid:     #d8c8a0;
+            --teal:           #4db8a0;
+            --teal-bright:    #6cd4bc;
+            --teal-deep:      #3a9e8a;
+            --teal-glow:      rgba(77, 184, 160, 0.30);
+            --frost:          #aad0ec;
+            --border:         rgba(232, 176, 16, 0.89);
+            --border-bright:  rgba(240, 208, 112, 0.65);
+            --font-brand:     "Cinzel Decorative", "Cinzel", Georgia, serif;
+            --font-title:     "Cinzel", Georgia, serif;
+            --font-body:      "Cormorant Garamond", Georgia, serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body
+        {
+            height: 100%;
+            background: var(--bg-deep);
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Snow canvas ── */
+        #snow-canvas
+        {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.75;
+        }
+
+        /* ── Radial nebula glow ── */
+        .nebula
+        {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background: radial-gradient(ellipse at 50% 35%, rgba(240, 208, 112, 0.09) 0%, transparent 55%), radial-gradient(ellipse at 50% 90%, rgba(77, 184, 160, 0.05) 0%, transparent 55%);
+            pointer-events: none;
+        }
+
+        /* ── Centre stage ── */
+        .stage {
+            position: relative;
+            z-index: 1;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            -webkit-app-region: drag;
+            user-select: none;
+        }
+
+        /* ── Staff orb (matches sidebar brand orb) ── */
+        .brand-orb
+        {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 27%, #ffffff   0%, var(--gold-warm) 18%, var(--gold)  38%, var(--teal-deep) 65%, var(--bg-deep)   100%);
+            box-shadow: 0 0 24px var(--gold-glow), 0 0 52px rgba(240, 208, 112, 0.22), 0 0 90px rgba(240, 208, 112, 0.10), inset 0 2px 4px rgba(255, 255, 255, 0.35);
+            animation: orb-pulse 4s ease-in-out infinite;
+            margin-bottom: 28px;
+        }
+
+        @keyframes orb-pulse
+        {
+            0%, 100% {
+                box-shadow: 0 0 24px var(--gold-glow), 0 0 52px rgba(240, 208, 112, 0.22), 0 0 90px rgba(240, 208, 112, 0.10), inset 0 2px 4px rgba(255, 255, 255, 0.35);
+            }
+            50%
+            {
+                box-shadow:
+                        0 0 38px var(--gold-glow-hard),
+                        0 0 72px rgba(240, 208, 112, 0.38),
+                        0 0 130px rgba(240, 208, 112, 0.18),
+                        0 0 180px rgba(77, 184, 160, 0.09),
+                        inset 0 2px 4px rgba(255, 255, 255, 0.35);
+            }
+        }
+
+        /* ── Title ── */
+        .brand-title
+        {
+            font-family: var(--font-brand);
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--gold-bright);
+            letter-spacing: 0.10em;
+            line-height: 1.2;
+            text-align: center;
+            text-shadow: 0 0 32px var(--gold-glow), 0 0 64px rgba(240, 208, 112, 0.20);
+        }
+
+        .brand-sub
+        {
+            font-family: var(--font-body);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.30em;
+            color: var(--silver-Kawaii);
+            margin-top: 8px;
+            text-align: center;
+            margin-bottom: 44px;
+        }
+
+        /* ── Gold → teal progress track ── */
+        .progress-track
+        {
+            width: 220px;
+            height: 2px;
+            background: rgba(240, 208, 112, 0.10);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: none;
+            position: relative;
+        }
+
+        .progress-bar
+        {
+            height: 100%;
+            width: 0%;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--gold), var(--gold-bright), var(--teal-bright));
+            box-shadow: 0 0 10px var(--gold-glow);
+            animation: progress-sweep 2.8s ease-in-out infinite;
+        }
+
+        @keyframes progress-sweep {
+            0%   { width: 0%;   margin-left: 0%; }
+            50%  { width: 65%;  margin-left: 20%; }
+            100% { width: 0%;   margin-left: 100%; }
+        }
+
+        /* ── Status text ── */
+        .status-text {
+            font-family: var(--font-title);
+            font-size: 13px;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--teal);
+            animation: status-blink 2.8s ease-in-out infinite;
+        }
+
+        @keyframes status-blink
+        {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: 0.35; }
+        }
+
+        /* ── Gold hairline top + bottom decorative borders ── */
+        .deco-top, .deco-bottom
+        {
+            position: fixed;
+            left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent      0%, var(--gold)      20%, var(--gold-bright) 45%, var(--teal-bright) 65%, var(--frost)     85%, transparent      100%);
+            opacity: 0.55;
+            z-index: 2;
+        }
+        .deco-top    { top: 38px; }  /* clears titlebar height */
+        .deco-bottom { bottom: 0; }
+
+        /* ── Constellation circle (matches sidebar::before) ── */
+        .constellation {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: 1px solid rgba(240, 208, 112, 0.08);
+            box-shadow: 0 0 0 28px rgba(240, 208, 112, 0.030), 0 0 0 58px rgba(240, 208, 112, 0.014), 0 0 0 90px rgba(240, 208, 112, 0.006), 0 0 70px  rgba(240, 208, 112, 0.05);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Scrollbar matches app theme ── */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(to bottom, var(--gold-bright), var(--gold), var(--teal));
+            border-radius: 999px;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="snow-canvas"></canvas>
+<div class="nebula"></div>
+<div class="constellation"></div>
+<div class="deco-top"></div>
+<div class="deco-bottom"></div>
+
+<div class="stage">
+    <div class="brand-orb"></div>
+    <div class="brand-title">Frieren Archive</div>
+    <div class="brand-sub">Celestial Archive</div>
+    <div class="progress-track">
+        <div class="progress-bar"></div>
+    </div>
+    <div class="status-text">Summoning the archive…</div>
+</div>
+
+<script>
+    // ── Gold-tinted snow — identical tint logic to main app ──
+    const canvas = document.getElementById('snow-canvas')
+    const ctx    = canvas.getContext('2d')
+
+    let W, H, flakes = []
+
+    function resize() {
+        W = canvas.width  = window.innerWidth
+        H = canvas.height = window.innerHeight
+    }
+
+    function randomFlake() {
+        return {
+            x:    Math.random() * W,
+            y:    Math.random() * H - H,
+            r:    Math.random() * 1.6 + 0.4,
+            // mix of gold-white and frost-teal, very subtle
+            hue:  Math.random() < 0.70 ? 45 : 185,
+            sat:  Math.random() < 0.70 ? 70 : 40,
+            spd:  Math.random() * 0.55 + 0.18,
+            drift: (Math.random() - 0.5) * 0.28,
+            opacity: Math.random() * 0.55 + 0.20,
+        }
+    }
+
+    function init() {
+        resize()
+        flakes = Array.from({ length: 140 }, randomFlake)
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, W, H)
+        for (const f of flakes) {
+            ctx.beginPath()
+            ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2)
+            ctx.fillStyle = `hsla(${f.hue}, ${f.sat}%, 85%, ${f.opacity})`
+            ctx.fill()
+
+            f.y += f.spd
+            f.x += f.drift
+            if (f.y > H + 4) { Object.assign(f, randomFlake(), { y: -4 }) }
+        }
+        requestAnimationFrame(draw)
+    }
+
+    window.addEventListener('resize', resize)
+    init()
+    draw()
+</script>
+
+</body>
+</html>
