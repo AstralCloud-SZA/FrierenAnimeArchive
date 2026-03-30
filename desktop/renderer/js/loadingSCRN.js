@@ -132,45 +132,64 @@ function drawShooters()
 }
 
 // ═══════════════════════════════════════════════════════════
-//  💫  EFFECT — ORBITING MICRO-ORBS
-//  3 small glowing orbs orbit the centre orb at different
-//  radii and speeds, trailing short fading tails
+//  💫  ORBITING MICRO-ORBS
+//  5 glowing orbs orbit the centre at distinct radii,
+//  speeds, and directions — each with a fading trail.
+//
+//  Orb roster:
+//    1. Gold       — r:68,  CW fast,    Frieren's staff
+//    2. Teal       — r:88,  CW medium,  Frieren's eyes
+//    3. Frost      — r:106, CW slow,    her scarf blue
+//    4. Warm amber — r:52,  CCW fast,   inner counter-orbit
+//    5. Silver     — r:124, CCW slow,   outermost halo ring
 // ═══════════════════════════════════════════════════════════
-let cx, cy   // orb centre — set in initMicroOrbs
+let cx, cy
 
 const microOrbs = [
-    // Gold orb — closest, fastest
-    { radius: 68, speed: 0.0014, angle: 0,              r: 4, hue: 48,  sat: 90, trail: [] },
-    // Teal orb — medium ring, medium speed
-    { radius: 88, speed: 0.0009, angle: Math.PI * 0.66, r: 3, hue: 172, sat: 75, trail: [] },
-    // Frost orb — outermost, slowest
-    { radius: 106, speed: 0.0006, angle: Math.PI * 1.33, r: 2.5, hue: 200, sat: 60, trail: [] },
+    // ── Original three ────────────────────────────────────
+    // Gold — closest ring, clockwise, fastest
+    { radius: 68,  speed:  0.0014, angle: 0,               r: 4,   hue: 48,  sat: 90, trail: [] },
+    // Teal — middle ring, clockwise, medium pace
+    { radius: 88,  speed:  0.0009, angle: Math.PI * 0.66,  r: 3,   hue: 172, sat: 75, trail: [] },
+    // Frost — outer ring, clockwise, slow drift
+    { radius: 106, speed:  0.0006, angle: Math.PI * 1.33,  r: 2.5, hue: 200, sat: 60, trail: [] },
+
+    // ── Two new additions ──────────────────────────────────
+    // Warm amber — innermost ring, COUNTER-clockwise, fast.
+    // Sits inside the gold orb to create a crossing-orbits
+    // effect reminiscent of a binary star system.
+    { radius: 52,  speed: -0.0018, angle: Math.PI * 0.40,  r: 3,   hue: 32,  sat: 95, trail: [] },
+
+    // Silver-white — outermost ring, COUNTER-clockwise, very slow.
+    // Barely visible — a ghostly halo that completes one revolution
+    // every ~90 s, grounding the whole composition.
+    { radius: 124, speed: -0.0004, angle: Math.PI * 1.75,  r: 2,   hue: 48,  sat: 20, trail: [] },
 ]
 
 function initMicroOrbs()
 {
-    // Centre of orb-wrap: horizontally centred, vertically centred in viewport
     cx = W / 2
     cy = H / 2
 }
 initMicroOrbs()
 
-const TRAIL_LEN = 18   // number of trail positions stored
+// Longer trail for the two new orbs since they move at extreme speeds
+const TRAIL_LEN = 22
 
 function drawMicroOrbs(ts)
 {
     for (const o of microOrbs)
     {
-        o.angle += o.speed * 16  // advance by ~one frame at 60fps
+        // Negative speed = counter-clockwise; positive = clockwise
+        o.angle += o.speed * 16
 
         const x = cx + Math.cos(o.angle) * o.radius
         const y = cy + Math.sin(o.angle) * o.radius
 
-        // Store trail position
         o.trail.push({ x, y })
         if (o.trail.length > TRAIL_LEN) o.trail.shift()
 
-        // Draw fading trail
+        // Fading trail — older points are smaller and more transparent
         for (let t = 0; t < o.trail.length - 1; t++)
         {
             const progress = t / (o.trail.length - 1)
@@ -182,7 +201,7 @@ function drawMicroOrbs(ts)
             fCtx.fill()
         }
 
-        // Draw orb head with glow
+        // Soft radial glow around the head
         const grd = fCtx.createRadialGradient(x, y, 0, x, y, o.r * 3)
         grd.addColorStop(0,   `hsla(${o.hue}, ${o.sat}%, 95%, 0.90)`)
         grd.addColorStop(0.4, `hsla(${o.hue}, ${o.sat}%, 75%, 0.50)`)
@@ -192,7 +211,7 @@ function drawMicroOrbs(ts)
         fCtx.fillStyle = grd
         fCtx.fill()
 
-        // Solid bright core
+        // Solid bright core dot
         fCtx.beginPath()
         fCtx.arc(x, y, o.r, 0, Math.PI * 2)
         fCtx.fillStyle = `hsla(${o.hue}, ${o.sat}%, 96%, 0.95)`
@@ -201,17 +220,14 @@ function drawMicroOrbs(ts)
 }
 
 // ═══════════════════════════════════════════════════════════
-//  📜  EFFECT — FADING RUNE CASCADE
-//  Rune glyphs appear at random positions, drift upward,
-//  fade gold then dissolve — like script writing itself
+//  📜  FADING RUNE CASCADE
 // ═══════════════════════════════════════════════════════════
 const RUNES = ['ᚠ','ᚢ','ᚦ','ᚨ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛇ','ᛈ','ᛉ','ᛊ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛜ','ᛞ','ᛟ']
 let runes = []
-let nextRune = Date.now() + 300
+let nextRune = Date.now() + 162 + Math.random() * 221
 
 function spawnRune()
 {
-    // Avoid the centre 200×200 area where the orb sits
     let x, y
     do {
         x = 60 + Math.random() * (W - 120)
@@ -223,39 +239,30 @@ function spawnRune()
         x, y,
         size:   11 + Math.random() * 14,
         life:   1.0,
-        // Slow upward drift
         vy:     -(0.15 + Math.random() * 0.25),
-        // Subtle horizontal wobble
         vx:     (Math.random() - 0.5) * 0.12,
-        // Gold-white vs teal split
         hue:    Math.random() < 0.75 ? 48 : 172,
         sat:    Math.random() < 0.75 ? 80 : 70,
-        // Slower decay = longer linger
         decay:  0.004 + Math.random() * 0.005,
-        // Each rune fades in briefly then out
-        fadeIn: 1.0,
     })
 }
 
-function drawRunes() {
+function drawRunes()
+{
     fCtx.save()
-    fCtx.textAlign = 'center'
+    fCtx.textAlign    = 'center'
     fCtx.textBaseline = 'middle'
 
     for (let i = runes.length - 1; i >= 0; i--)
     {
         const r = runes[i]
-
-        // Fade-in for first 15% of life, then fade out
         const displayOp = r.life > 0.85
-            ? (1 - r.life) / 0.15        // 0 → 1 during fade-in
-            : r.life / 0.85              // 1 → 0 during fade-out
+            ? (1 - r.life) / 0.15
+            : r.life / 0.85
         const clampedOp = Math.min(1, Math.max(0, displayOp)) * 0.75
 
-        fCtx.font = `${r.size}px "Cinzel", serif`
-        fCtx.fillStyle = `hsla(${r.hue}, ${r.sat}%, 82%, ${clampedOp})`
-
-        // Soft glow behind glyph
+        fCtx.font         = `${r.size}px "Cinzel", serif`
+        fCtx.fillStyle    = `hsla(${r.hue}, ${r.sat}%, 82%, ${clampedOp})`
         fCtx.shadowColor  = `hsla(${r.hue}, ${r.sat}%, 80%, ${clampedOp * 0.6})`
         fCtx.shadowBlur   = 8
         fCtx.fillText(r.glyph, r.x, r.y)
@@ -277,21 +284,17 @@ function loop(ts)
     drawSnow()
     fCtx.clearRect(0, 0, W, H)
 
-    // Stars (background layer)
     drawStars(ts)
 
-    // Rune cascade
     if (Date.now() >= nextRune)
     {
         spawnRune()
-        nextRune = Date.now() + 380 + Math.random() * 520
+        nextRune = Date.now() + 162 + Math.random() * 221
     }
     drawRunes()
 
-    // Micro-orbs around centre
     drawMicroOrbs(ts)
 
-    // Shooting stars (foreground layer)
     if (Date.now() >= nextShoot)
     {
         spawnShooter()
