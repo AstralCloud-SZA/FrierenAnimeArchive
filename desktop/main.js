@@ -101,6 +101,12 @@ function startRails()
     ]
     for (const key of RUBY_ENV_SCRUB) delete inheritedEnv[key]
 
+    // ── SQLite DB paths ───────────────────────────────────
+    // storage/ inside resources/ is read-only in packaged builds.
+    // All four production databases are redirected to userData,
+    // which is always writable on the user's machine.
+    const userData = app.getPath('userData')
+
     railsProcess = spawn(
         rubyExe,
         ['bin/rails', 'server', '-p', '3001', '-e', 'production'],
@@ -127,7 +133,14 @@ function startRails()
                 // Bootsnap writes a compile cache on first boot.
                 // resources/ is read-only in a packaged build, so we
                 // redirect the cache to userData which is always writable.
-                BOOTSNAP_CACHE_DIR:  path.join(app.getPath('userData'), 'bootsnap-cache')
+                BOOTSNAP_CACHE_DIR:  path.join(userData, 'bootsnap-cache'),
+                // SQLite databases — one per Rails subsystem.
+                // database.yml reads these via ENV.fetch() so all four
+                // files land in userData rather than the read-only resources dir.
+                RAILS_DB_PATH:       path.join(userData, 'production.sqlite3'),
+                RAILS_DB_CACHE_PATH: path.join(userData, 'production_cache.sqlite3'),
+                RAILS_DB_QUEUE_PATH: path.join(userData, 'production_queue.sqlite3'),
+                RAILS_DB_CABLE_PATH: path.join(userData, 'production_cable.sqlite3')
             }
         }
     )
