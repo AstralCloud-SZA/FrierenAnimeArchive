@@ -1,25 +1,30 @@
 # config/initializers/auto_migrate.rb
 # ─────────────────────────────────────────────────────────
-# In packaged Electron builds the SQLite databases start
-# empty on every new install. This initializer creates all
-# configured databases and runs any pending migrations at
-# boot so the app never crashes with "no such table".
-#
-# Uses DatabaseTasks which is the correct Rails 8.x API —
-# handles all four databases (primary, cache, queue, cable)
-# in a single call and is safe to run on every boot.
+# Creates and migrates only the current environment's
+# databases at boot. Avoids create_all which incorrectly
+# touches development/test databases even in production.
+# Safe to run on every boot — idempotent.
 # ─────────────────────────────────────────────────────────
 if Rails.env.production?
   begin
-    Rails.logger.info "⏳ Ensuring databases exist..."
-    ActiveRecord::Tasks::DatabaseTasks.create_all
+    Rails.logger.info "⏳ Ensuring production databases exist..."
 
-    Rails.logger.info "⏳ Running pending migrations..."
-    ActiveRecord::Tasks::DatabaseTasks.migrate
+    ActiveRecord::Base.configurations.configs_for(env_name: 'production').each do |db_config|
+      # Create the database file if it does not exist yet
+      ActiveRecord::Tasks::DatabaseTasks.create(db_config)
 
-    Rails.logger.info "✅ Database setup complete."
+      # Run any pending migrations for this database
+      ActiveRecord::Tasks::DatabaseTasks.migrate_status
+      ActiveRecord::Base.establish_connection(db_config.name.to_sym)
+      ActiveRecord::MigrationContext.new(ActiveRecord::Tasks::DatabaseTasks.migrations_paths, ActiveRecord::Base.connection.schema_migration).migrate
+
+      Rails.logger.info "✅ #{db_config.name} ready."
+    end
+
+    ActiveRecord::Base.establish_connection(:primary)
+
   rescue => e
     Rails.logger.error "❌ Auto-migrate failed: #{e.message}"
-    raise  # re-raise so Rails exits cleanly rather than booting broken
+    raise
   end
 end

@@ -1,0 +1,272 @@
+:root {
+    --bg-deep:        #020408;
+    --gold:           #d1aa3a;
+    --gold-bright:    #f0d070;
+    --gold-warm:      #fae090;
+    --gold-pale:      #fdf0c8;
+    --gold-glow:      rgba(240, 208, 112, 0.45);
+    --gold-glow-hard: rgba(240, 208, 112, 0.75);
+    --gold-panel:     rgba(240, 208, 112, 0.06);
+    --silver:         #f5e8d0;
+    --silver-Kawaii:  #DBDDDF;
+    --silver-mid:     #d8c8a0;
+    --teal:           #4db8a0;
+    --teal-bright:    #6cd4bc;
+    --teal-deep:      #3a9e8a;
+    --teal-glow:      rgba(77, 184, 160, 0.30);
+    --frost:          #aad0ec;
+    --font-brand:     "Cinzel Decorative", "Cinzel", Georgia, serif;
+    --font-title:     "Cinzel", Georgia, serif;
+    --font-body:      "Cormorant Garamond", Georgia, serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    height: 100%;
+    background: var(--bg-deep);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ── Canvases ─────────────────────────────────────────
+   Layer order (back → front):
+     snow-canvas   z:0  — gold/frost snowfall
+     fx-canvas     z:1  — stars, shooting stars, aurora
+     .nebula        z:0  — CSS radial glow
+     .stage         z:2  — orb, title, progress
+     .crescent      z:2  — CSS moon halo behind orb
+────────────────────────────────────────────────────── */
+#snow-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.70; }
+#fx-canvas   { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+
+.nebula {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+            radial-gradient(ellipse at 50% 35%, rgba(240,208,112,0.09) 0%, transparent 55%),
+            radial-gradient(ellipse at 50% 90%, rgba(77,184,160,0.05)  0%, transparent 55%);
+}
+
+/* ── Gold hairlines ── */
+.deco-top, .deco-bottom {
+    position: fixed; left: 0; right: 0; height: 1px; z-index: 3;
+    background: linear-gradient(90deg,
+    transparent 0%, var(--gold) 20%, var(--gold-bright) 45%,
+    var(--teal-bright) 65%, var(--frost) 85%, transparent 100%);
+    opacity: 0.55;
+}
+.deco-top    { top: 38px; }
+.deco-bottom { bottom: 0; }
+
+/* ── Constellation rings ── */
+.constellation {
+    position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+    width: 200px; height: 200px; border-radius: 50%;
+    border: 1px solid rgba(240,208,112,0.08);
+    box-shadow:
+            0 0 0 28px rgba(240,208,112,0.030),
+            0 0 0 58px rgba(240,208,112,0.014),
+            0 0 0 90px rgba(240,208,112,0.006),
+            0 0 70px  rgba(240,208,112,0.05);
+    pointer-events: none; z-index: 0;
+}
+
+/* ════════════════════════════════════════════════════
+   🌙 EFFECT 1 — CRESCENT MOON HALO
+   Pure CSS: a clipped arc behind the orb that breathes
+════════════════════════════════════════════════════ */
+.crescent-wrap {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -54%);
+    width: 200px;
+    height: 200px;
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* Outer glow ring */
+.crescent-wrap::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 1.5px solid transparent;
+    /* Only paint the top ~200° arc — bottom hidden by gradient trick */
+    background:
+            linear-gradient(var(--bg-deep), var(--bg-deep)) padding-box,
+            conic-gradient(
+                    from 200deg,
+                    transparent       0deg,
+                    var(--gold)      40deg,
+                    var(--gold-bright) 80deg,
+                    var(--teal-bright) 120deg,
+                    var(--gold)      160deg,
+                    transparent      200deg
+            ) border-box;
+    animation: crescent-breathe 5s ease-in-out infinite;
+    filter: blur(0.5px);
+}
+
+/* Inner softer halo ring */
+.crescent-wrap::after {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    border: 1px solid transparent;
+    background:
+            linear-gradient(var(--bg-deep), var(--bg-deep)) padding-box,
+            conic-gradient(
+                    from 210deg,
+                    transparent       0deg,
+                    rgba(240,208,112,0.35) 30deg,
+                    rgba(240,208,112,0.55) 90deg,
+                    rgba(77,212,188,0.40)  130deg,
+                    rgba(240,208,112,0.25) 160deg,
+                    transparent       190deg
+            ) border-box;
+    animation: crescent-breathe 5s ease-in-out infinite 0.4s;
+}
+
+@keyframes crescent-breathe {
+    0%, 100% { opacity: 0.55; transform: rotate(0deg); }
+    50%       { opacity: 1.00; transform: rotate(4deg); }
+}
+
+/* ── Centre stage ── */
+.stage {
+    position: relative;
+    z-index: 2;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    -webkit-app-region: drag;
+    user-select: none;
+}
+
+/* Orb wrapper holds orb + crescent together */
+.orb-wrap {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-shrink: 0;
+}
+
+/* ── Staff orb ── */
+.brand-orb {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 3;
+    background: radial-gradient(
+            circle at 30% 27%,
+            #ffffff          0%,
+            var(--gold-warm) 18%,
+            var(--gold)      38%,
+            var(--teal-deep) 65%,
+            var(--bg-deep)   100%
+    );
+    box-shadow:
+            0 0 24px var(--gold-glow),
+            0 0 52px rgba(240,208,112,0.22),
+            0 0 90px rgba(240,208,112,0.10),
+            inset 0 2px 4px rgba(255,255,255,0.35);
+    animation: orb-pulse 4s ease-in-out infinite;
+}
+
+@keyframes orb-pulse {
+    0%, 100% {
+        box-shadow:
+                0 0 24px var(--gold-glow),
+                0 0 52px rgba(240,208,112,0.22),
+                0 0 90px rgba(240,208,112,0.10),
+                inset 0 2px 4px rgba(255,255,255,0.35);
+    }
+    50% {
+        box-shadow:
+                0 0 38px var(--gold-glow-hard),
+                0 0 72px rgba(240,208,112,0.38),
+                0 0 130px rgba(240,208,112,0.18),
+                0 0 180px rgba(77,184,160,0.09),
+                inset 0 2px 4px rgba(255,255,255,0.35);
+    }
+}
+
+/* ── Title ── */
+.brand-title {
+    font-family: var(--font-brand);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gold-bright);
+    letter-spacing: 0.10em;
+    text-align: center;
+    text-shadow: 0 0 32px var(--gold-glow), 0 0 64px rgba(240,208,112,0.20);
+}
+
+.brand-sub {
+    font-family: var(--font-body);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.30em;
+    color: var(--silver-Kawaii);
+    margin-top: 8px;
+    text-align: center;
+    margin-bottom: 36px;
+}
+
+/* ── Progress track ── */
+.progress-track {
+    width: 220px;
+    height: 2px;
+    background: rgba(240,208,112,0.10);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-bright), var(--teal-bright));
+    box-shadow: 0 0 10px var(--gold-glow);
+    animation: progress-sweep 2.8s ease-in-out infinite;
+}
+
+@keyframes progress-sweep {
+    0%   { width: 0%;  margin-left: 0%;    }
+    50%  { width: 65%; margin-left: 20%;   }
+    100% { width: 0%;  margin-left: 100%;  }
+}
+
+/* ── Status text ── */
+.status-text {
+    font-family: var(--font-title);
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--teal);
+    animation: status-blink 2.8s ease-in-out infinite;
+}
+
+@keyframes status-blink {
+    0%, 100% { opacity: 1;    }
+    50%       { opacity: 0.35; }
+}
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom, var(--gold-bright), var(--gold), var(--teal));
+    border-radius: 999px;
+}
