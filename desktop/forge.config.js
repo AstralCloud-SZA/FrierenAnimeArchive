@@ -63,7 +63,8 @@ function copyDirForce(src, dst)
 module.exports = {
   packagerConfig: {
     asar: true,
-    name: 'Frieren Anime Archive'
+    name: 'Frieren Anime Archive',
+    icon: './Icon/f2'
   },
 
   hooks: {
@@ -117,7 +118,11 @@ module.exports = {
   makers: [
     {
       name:   '@electron-forge/maker-squirrel',
-      config: { name: 'FrierenAnimeArchive' }
+      config: {
+        name:        'FrierenAnimeArchive',
+        setupIcon:  './Icon/f2.ico',
+        loadingGif:   undefined
+      }
     },
     {
       name:      '@electron-forge/maker-zip',

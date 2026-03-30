@@ -710,7 +710,7 @@ html, body
     text-shadow: 0 0 12px var(--gold-glow);
 }
 
-/* Images — framed with gold border glow */
+/* Icon — framed with gold border glow */
 .article-full-content img {
     max-width: 100%;
     border-radius: 10px;

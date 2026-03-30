@@ -268,7 +268,8 @@ function createWindow()
         minHeight:       600,
         backgroundColor: '#020408',
         frame:           false,      // custom title bar in index.html
-        title:           'Frieren Archive',
+        title:          'Frieren Archive',
+        icon:            path.join(__dirname,'Icon','f2.ico'),
         webPreferences: {
             preload:          path.join(__dirname, 'preload.js'),
             contextIsolation: true,
