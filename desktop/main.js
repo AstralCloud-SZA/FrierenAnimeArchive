@@ -107,6 +107,11 @@ function startRails()
         {
             cwd:         railsDir,
             windowsHide: true,
+            // detached: true puts Rails in its own process group so
+            // Windows does not place it in the same job object as
+            // Electron. Without this, the OS terminates Rails with
+            // SIGTERM the moment Electron's job object is cleaned up.
+            detached:    true,
             stdio:       'pipe',
             env: {
                 ...inheritedEnv,                             // clean base — no stale Ruby env
@@ -126,6 +131,10 @@ function startRails()
             }
         }
     )
+
+    // Unreference the child so Electron's event loop does not
+    // wait on Rails — lets the app stay responsive while Rails boots.
+    railsProcess.unref()
 
     railsProcess.stdout.on('data', d =>
     {
@@ -152,9 +161,11 @@ function startRails()
 
 // ── Health-check polling ──────────────────────────────────
 // Poll /up every 500 ms — open the window once Rails responds 200.
-// Falls through after 40 retries (20 s) so the app still opens
+// Falls through after 60 retries (30 s) so the app still opens
 // even if Rails fails, letting the user inspect the log.
-function waitForRails(callback, retries = 40)
+// Retry count raised from 40 → 60 to accommodate Bootsnap's
+// cold-cache compile time on first launch.
+function waitForRails(callback, retries = 60)
 {
     http.get('http://localhost:3001/up', res =>
     {
