@@ -1,52 +1,54 @@
 const path = require('path')
 const fs   = require('fs')
 
-// Dirs to exclude when copying the Rails repo into rails-api-dist
-const EXCLUDE = [
+const RAILS_EXCLUDE = [
   'desktop', '.git', 'log', 'tmp', 'test', 'coverage',
-  'node_modules', '.bundle', 'vendor'
+  'node_modules', '.bundle', 'vendor', 'out'
 ]
 
-function copyRailsApp (src, dst)
-{
+function copyDir(src, dst) {
   fs.mkdirSync(dst, { recursive: true })
-  for (const entry of fs.readdirSync(src))
-  {
-    if (EXCLUDE.includes(entry)) continue
-    const srcPath = path.join(src, entry)
-    const dstPath = path.join(dst, entry)
-    const stat    = fs.statSync(srcPath)
-    if (stat.isDirectory()) copyRailsApp(srcPath, dstPath)
-    else                    fs.copyFileSync(srcPath, dstPath)
+  for (const entry of fs.readdirSync(src)) {
+    if (RAILS_EXCLUDE.includes(entry)) continue
+    const s = path.join(src, entry)
+    const d = path.join(dst, entry)
+    fs.statSync(s).isDirectory() ? copyDir(s, d) : fs.copyFileSync(s, d)
   }
 }
 
 module.exports = {
   packagerConfig: {
     asar: true,
-    name: 'Frieren Anime Archive',
-    extraResources: [
-      './ruby-runtime',      // ← simple string, copies whole folder
-      './rails-api-dist'     // ← prepared by the hook below
-    ]
+    name: 'Frieren Anime Archive'
+    // ← no extraResources here — hook handles it below
   },
 
   hooks: {
-    // Runs before Forge packages — prepares a clean Rails copy
-    generateAssets: async () =>
-    {
-      const src = path.join(__dirname, '..')
-      const dst = path.join(__dirname, 'rails-api-dist')
-      console.log('[hook] Copying Rails app → rails-api-dist ...')
-      fs.rmSync(dst, { recursive: true, force: true })
-      copyRailsApp(src, dst)
+    postPackage: async (forgeConfig, options) => {
+      const outputDir  = options.outputPaths[0]                  // .../Frieren Anime Archive-win32-x64
+      const resDir     = path.join(outputDir, 'resources')
 
-      // Copy vendor/bundle (gems) into the dist too
+      // ── Copy Ruby runtime ────────────────────────────────
+      const rubySrc = path.join(__dirname, 'ruby-runtime')
+      const rubyDst = path.join(resDir, 'ruby-runtime')
+      console.log('[hook] Copying ruby-runtime →', rubyDst)
+      copyDir(rubySrc, rubyDst)
+
+      // ── Copy Rails app ───────────────────────────────────
+      const railsSrc = path.join(__dirname, '..')
+      const railsDst = path.join(resDir, 'rails-api')
+      console.log('[hook] Copying rails-api →', railsDst)
+      copyDir(railsSrc, railsDst)
+
+      // ── Copy vendored gems into rails-api ────────────────
       const gemsSrc = path.join(__dirname, '..', 'vendor', 'bundle')
-      const gemsDst = path.join(dst, 'vendor', 'bundle')
-      if (fs.existsSync(gemsSrc)) copyRailsApp(gemsSrc, gemsDst)
+      const gemsDst = path.join(railsDst, 'vendor', 'bundle')
+      if (fs.existsSync(gemsSrc)) {
+        console.log('[hook] Copying vendor/bundle →', gemsDst)
+        copyDir(gemsSrc, gemsDst)
+      }
 
-      console.log('[hook] Rails copy done.')
+      console.log('[hook] Done. Resources:', fs.readdirSync(resDir))
     }
   },
 
