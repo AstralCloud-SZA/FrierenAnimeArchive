@@ -181,7 +181,7 @@ function startRails()
 // cold-cache compile time on first launch.
 function waitForRails(callback, retries = 60)
 {
-    http.get('http://localhost:3001/up', res =>
+    http.get('http://localhost:3001/api/health', res =>
     {
         if (res.statusCode === 200)
         {
