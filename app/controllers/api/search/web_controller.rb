@@ -1,4 +1,3 @@
-# app/controllers/api/search/web_controller.rb
 module Api
   module Search
     class WebController < ApplicationController

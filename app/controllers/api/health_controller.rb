@@ -1,16 +1,15 @@
-# app/controllers/api/health_controller.rb
 module Api
   class HealthController < ApplicationController
     def index
       render json: {
-        status: "ok",
+        status:    "ok",
         timestamp: Time.current.iso8601,
-        version: "v0.1.0",
-        rails: Rails.version,
-        env: Rails.env,
+        version:   "v0.1.0",
+        rails:     Rails.version,
+        env:       Rails.env,
         apis: {
           jikan: jikan_available?,
-          ddg: true
+          ddg:   true
         }
       }, status: :ok
     end

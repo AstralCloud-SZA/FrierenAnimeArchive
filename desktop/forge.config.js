@@ -27,7 +27,9 @@ const RAILS_EXCLUDE = [
   'test',         // Test suite
   'coverage',     // Test coverage reports
   'node_modules', // JS deps (not needed in Rails)
-  '.bundle',      // Bundler machine config
+  // ✅ FIX: Removed '.bundle' — we NEED .bundle/config copied so
+  //         Bundler resolves vendor/bundle at runtime without relying
+  //         solely on env vars that may not apply before bundler/setup runs.
   'vendor',       // Excluded here so we can copy vendor/bundle explicitly
   'out'           // Forge build output
 ]
@@ -62,11 +64,9 @@ module.exports = {
   packagerConfig: {
     asar: true,
     name: 'Frieren Anime Archive'
-    // No extraResources — postPackage hook handles all copying
   },
 
   hooks: {
-    // ── postPackage ───────────────────────────────────────
     postPackage: async (forgeConfig, options) =>
     {
       const resDir = path.join(options.outputPaths[0], 'resources')
@@ -94,7 +94,19 @@ module.exports = {
       else
       {
         console.error('[hook] ✗ vendor/bundle MISSING — run bundle install first!')
+        process.exit(1) // ✅ FIX: Fail the build loudly instead of silently shipping broken gems
       }
+
+      // ── 4. Write .bundle/config if not already copied ────
+      // ✅ FIX: Guarantee Bundler always finds vendor/bundle regardless
+      //         of whether the source repo had .bundle/config committed.
+      const bundleConfigDir  = path.join(railsDst, '.bundle')
+      const bundleConfigPath = path.join(bundleConfigDir, 'config')
+      fs.mkdirSync(bundleConfigDir, { recursive: true })
+      fs.writeFileSync(bundleConfigPath,
+          `---\nBUNDLE_PATH: "vendor/bundle"\nBUNDLE_WITHOUT: "development:test"\nBUNDLE_FROZEN: "true"\n`
+      )
+      console.log('[hook] Wrote .bundle/config →', bundleConfigPath)
 
       console.log('[hook] Done. Resources:', fs.readdirSync(resDir))
     }
