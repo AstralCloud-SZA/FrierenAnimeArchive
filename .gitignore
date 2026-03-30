@@ -83,3 +83,17 @@ desktop/package-lock.json
 capybara-*.html
 *.rdb
 *.html
+
+# Electron — bundled Ruby runtime (binary, not source-controlled)
+desktop/ruby-runtime/
+
+# Electron — Rails API copy (sourced from repo root, not duplicated)
+desktop/rails-api/
+
+# Electron — vendored gems (installed at build time)
+desktop/vendor/
+vendor/bundle/
+
+# Bundler config (set locally per machine)
+.bundle/
+desktop/.bundle/
