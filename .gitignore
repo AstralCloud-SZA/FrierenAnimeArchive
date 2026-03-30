@@ -86,6 +86,7 @@ capybara-*.html
 
 # Electron — bundled Ruby runtime (binary, not source-controlled)
 desktop/ruby-runtime/
+desktop/rails-api-dist/
 
 # Electron — Rails API copy (sourced from repo root, not duplicated)
 desktop/rails-api/
