@@ -4,23 +4,26 @@ module.exports = {
     name: 'Frieren Anime Archive',
     extraResources: [
       {
-        from: '../',              // Rails repo root
-        to: 'rails-api',
-        ignore: [
-          /^\/desktop/,          // skip Electron folder
-          /^\/\.git/,            // skip git history
-          /^\/log/,              // skip logs
-          /^\/tmp/,              // skip temp files
-          /^\/test/,             // skip tests
-          /^\/coverage/,         // skip test coverage
-          /node_modules/,        // skip node modules
-          /\.env(?!\.example)/,  // skip .env files
-          /\.DS_Store/
-        ]
+        from: './ruby-runtime',
+        to:   'ruby-runtime'
+        // no filter needed — copy everything
       },
       {
-        from: './ruby-runtime',  // your slimmed Ruby 3.4.9
-        to: 'ruby-runtime'
+        from:   '../',
+        to:     'rails-api',
+        filter: [            // ← glob strings, NOT regex
+          '!desktop/**',
+          '!.git/**',
+          '!log/**',
+          '!tmp/**',
+          '!test/**',
+          '!coverage/**',
+          '!node_modules/**',
+          '!vendor/bundle/**',
+          '!.env',
+          '!.env.*',
+          '!.env.local'
+        ]
       }
     ]
   },
