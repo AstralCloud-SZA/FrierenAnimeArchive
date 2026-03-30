@@ -11,7 +11,7 @@ const http   = require('http')
 
 const isDev = process.env.NODE_ENV === 'development'
 
-app.setPath('userData', path.join(__dirname, '.electron-cache'))
+app.setPath('userData', app.isPackaged ? path.join(path.dirname(process.execPath), '.electron-cache') : path.join(__dirname, '.electron-cache'))
 
 // ═══════════════════════════════════════════════════════════
 //  Rails API — Auto Start
