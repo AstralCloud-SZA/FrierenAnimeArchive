@@ -1124,3 +1124,51 @@ html, body
     border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover { filter: brightness(1.35); }
+
+
+
+/*============================================================
+            MANGA SECTION
+========================================================== */
+
+/* ── Manga history list ──────────────────────── */
+#manga-history-list
+{
+    margin-top: 12px;
+}
+
+/* Optional: make manga history cards slightly tighter */
+#manga-history-list .news-card,
+#manga-history-list .news-item
+{
+    margin-bottom: 0;
+}
+
+/* Optional: empty state inside manga history */
+#manga-history-list .empty-state
+{
+    padding: 28px 18px;
+}
+
+/* Optional: if you use plain div.news-item in manga.js */
+.news-item
+{
+    background: linear-gradient(135deg, rgba(240, 208, 112, 0.07) 0%, rgba(253, 246, 232, 0.04) 100%);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.22s ease;
+    color: var(--silver-Kawaii);
+    font-family: var(--font-body), serif;
+    font-size: 20px;
+    line-height: 1.5;
+}
+
+.news-item:hover
+{
+    border-color: rgba(240, 208, 112, 0.50);
+    background: linear-gradient(135deg, rgba(240, 208, 112, 0.13) 0%, rgba(253, 246, 232, 0.08) 100%);
+    transform: translateX(4px);
+    box-shadow: 0 4px 24px rgba(240, 208, 112, 0.15), 0 0 40px rgba(240, 208, 112, 0.06);
+}

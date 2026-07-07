@@ -8,6 +8,7 @@ const SECTIONS = {
     search:    { label: 'Quick Search', el: null },
     favorites: { label: 'Favourites',   el: null },
     anime:     { label: 'Watch Anime',  el: null },
+    manga:     { label: 'Read Manga',   el: null },
     settings:  { label: 'Settings',     el: null }
 }
 
@@ -63,7 +64,8 @@ document.addEventListener('keydown', e =>
             '3': 'search',
             '4': 'favorites',
             '5': 'anime',
-            '6': 'settings'
+            '6': 'manga',
+            '7': 'settings'
         }
         if (map[e.key]) { e.preventDefault(); navigateTo(map[e.key]) }
     }
