@@ -8,7 +8,6 @@ class MangaLinkService
 
   # Later: map MAL id -> exact series page once you store it in DB
   def self.url_for_mal_id(mal_id)
-    mapping = MangaMapping.find_by(mal_id: mal_id)
-    mapping ? mapping.manga_url : nil
+    MangaMapping.find_by(mal_id: mal_id)&.manga_url
   end
 end

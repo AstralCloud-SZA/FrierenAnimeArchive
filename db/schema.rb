@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_22_121740) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_07_193338) do
   create_table "articles", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.boolean "featured", default: false, null: false
@@ -24,5 +24,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_22_121740) do
     t.index ["published_at"], name: "index_articles_on_published_at"
     t.index ["source_name"], name: "index_articles_on_source_name"
     t.index ["url"], name: "index_articles_on_url", unique: true
+  end
+
+  create_table "manga_mappings", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "mal_id", null: false
+    t.string "manga_url", null: false
+    t.string "source", default: "mangadex"
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mal_id"], name: "index_manga_mappings_on_mal_id", unique: true
   end
 end

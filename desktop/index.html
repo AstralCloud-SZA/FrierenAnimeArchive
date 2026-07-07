@@ -72,6 +72,10 @@
         <div class="nav-icon">🎬</div>
         <span>Watch Anime</span>
       </div>
+      <div class="nav-item" data-section="manga">
+        <div class="nav-icon">📚</div>
+        <span>Read Manga</span>
+      </div>
     </nav>
 
     <div class="nav-section-label">System</div>
@@ -301,6 +305,51 @@
     </div>
     <!-- /#section-anime -->
 
+    <!-- ── READ MANGA · MangaDex webview ── -->
+    <div class="section" id="section-manga">
+
+      <div class="glass-card">
+        <div class="card-heading">📚 Read Manga — MangaDex</div>
+        <div class="card-body">
+          Search and read manga directly, powered by your Rails API.
+        </div>
+      </div>
+
+      <div class="search-bar-large">
+        <span class="search-ico">📚</span>
+        <input type="text" id="manga-input" placeholder="Search manga… e.g. Frieren">
+      </div>
+      <button class="search-btn" id="manga-btn">Find Manga</button>
+
+      <div class="ddg-toolbar">
+        <button class="header-btn" id="manga-back"    title="Back">&#8592;</button>
+        <button class="header-btn" id="manga-forward" title="Forward">&#8594;</button>
+        <button class="header-btn" id="manga-reload"  title="Reload">&#8635;</button>
+      </div>
+
+      <webview
+              id="manga-webview"
+              src="about:blank"
+              partition="persist:manga"
+              useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+              style="width:100%;
+                     height:calc(100vh - 420px);
+                     min-height:380px;
+                     margin-top:12px;
+                     border:1px solid var(--border);
+                     border-radius:12px;
+                     background:#020408;"
+              allowpopups
+              disablewebsecurity>
+      </webview>
+
+      <!-- Recently read history — local only -->
+      <div class="card-heading" style="margin-top:20px;">🕘 Recently Read</div>
+      <div class="news-list" id="manga-history-list"></div>
+
+    </div>
+    <!-- /#section-manga -->
+
     <!-- ── SETTINGS ── -->
     <div class="section" id="section-settings">
 
@@ -371,6 +420,7 @@
 <script src="renderer/js/snow.js"></script>
 <script src="renderer/js/nav.js"></script>
 <script src="renderer/js/app.js"></script>
+<script src="renderer/js/manga.js"></script>
 
 </body>
 </html>
