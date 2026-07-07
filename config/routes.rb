@@ -19,6 +19,7 @@ Rails.application.routes.draw do
     # Anime (Jikan proxy)
     namespace :anime do
       get "search", to: "search#index"
+      get "manga",  to: "manga#index"   # ← new: GET /api/anime/manga?q=...&mal_id=...
       get ":id",    to: "show#show"
     end
 
