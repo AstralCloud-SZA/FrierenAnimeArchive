@@ -19,6 +19,7 @@ const fs        = require('node:fs')
 const { spawn } = require('child_process')
 const http      = require('http')
 
+const soundengine = require(path.join(__dirname, 'soundengine', 'fmod'))
 const isDev = process.env.NODE_ENV === 'development'
 
 // ── userData path ─────────────────────────────────────────

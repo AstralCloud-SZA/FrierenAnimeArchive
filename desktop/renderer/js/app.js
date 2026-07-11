@@ -1,54 +1,65 @@
 /* ============================================================
    renderer/js/app.js — Main application logic
    Connects UI to Rails API via window.api (preload bridge)
+   Connects sound UI to FMOD via window.sound (preload bridge)
 
    Sections:
      1.  Constants + DOM refs
      2.  UI helpers (cards, states, escaping)
-     3.  API status
-     4.  News — load, in-app reader, star/save
-     5.  MAL search + in-app detail + star/save
-     6.  Favourites — render, tabs, remove
-     7.  DuckDuckGo in-app webview browser
-     8.  Watch Anime — 9Anime webview
-     9.  Settings (SFW toggle)
-     10. Event listeners
-     11. Boot sequence
+     3.  Sound helpers + settings
+     4.  API status
+     5.  News — load, in-app reader, star/save
+     6.  MAL search + in-app detail + star/save
+     7.  Favourites — render, tabs, remove
+     8.  DuckDuckGo in-app webview browser
+     9.  Watch Anime — 9Anime webview
+     10. Settings (SFW toggle + audio)
+     11. Event listeners
+     12. Boot sequence
 ============================================================ */
 
-const API = window.api
+const API   = window.api
+const SOUND = window.sound || null
 
 // ═══════════════════════════════════════════════════════════
 //  1. DOM REFS
 // ═══════════════════════════════════════════════════════════
 const $ = id => document.getElementById(id)
 
-const apiDot         = $('api-dot')
-const apiStatus      = $('api-status')
-const settingsBadge  = $('settings-api-badge')
-const newsList       = $('news-list')
-const newsReader     = $('news-reader')
-const newsReaderBack = $('news-reader-back')
-const newsReaderTitle= $('news-reader-title')
-const newsWebview    = $('news-webview')
-const btnHealth      = $('btn-health')
-const btnNews        = $('btn-news')
-const globalSearch   = $('global-search')
-const malInput       = $('mal-input')
-const malBtn         = $('mal-btn')
-const malOutput      = $('mal-output')
-const malEmpty       = $('mal-empty')
-const sfwToggle      = $('sfw-toggle')
-const ddgInput       = $('ddg-input')
-const ddgBtn         = $('ddg-btn')
-const ddgWebview     = $('ddg-webview')
-const ddgBack        = $('ddg-back')
-const ddgForward     = $('ddg-forward')
-const ddgReload      = $('ddg-reload')
-const animeWebview   = $('anime-webview')
-const animeBack      = $('anime-back')
-const animeForward   = $('anime-forward')
-const animeReload    = $('anime-reload')
+const apiDot          = $('api-dot')
+const apiStatus       = $('api-status')
+const settingsBadge   = $('settings-api-badge')
+const newsList        = $('news-list')
+const newsReader      = $('news-reader')
+const newsReaderBack  = $('news-reader-back')
+const newsReaderTitle = $('news-reader-title')
+const newsWebview     = $('news-webview')
+const btnHealth       = $('btn-health')
+const btnNews         = $('btn-news')
+const globalSearch    = $('global-search')
+const malInput        = $('mal-input')
+const malBtn          = $('mal-btn')
+const malOutput       = $('mal-output')
+const malEmpty        = $('mal-empty')
+const sfwToggle       = $('sfw-toggle')
+const ddgInput        = $('ddg-input')
+const ddgBtn          = $('ddg-btn')
+const ddgWebview      = $('ddg-webview')
+const ddgBack         = $('ddg-back')
+const ddgForward      = $('ddg-forward')
+const ddgReload       = $('ddg-reload')
+const animeWebview    = $('anime-webview')
+const animeBack       = $('anime-back')
+const animeForward    = $('anime-forward')
+const animeReload     = $('anime-reload')
+
+// Optional future settings controls if you add them in HTML:
+// <input id="music-volume" type="range" min="0" max="100">
+// <input id="master-volume" type="range" min="0" max="100">
+// <input id="mute-all-toggle" type="checkbox">
+const musicVolumeSlider = $('music-volume')
+const masterVolumeSlider = $('master-volume')
+const muteAllToggle = $('mute-all-toggle')
 
 // ═══════════════════════════════════════════════════════════
 //  2. UI HELPERS
@@ -65,7 +76,11 @@ function escHtml (str)
 
 function unescHtml (str)
 {
-    return str.replace(/&quot;/g, '"').replace(/&amp;/g,  '&').replace(/&lt;/g,   '<').replace(/&gt;/g,   '>')
+    return str
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g,  '&')
+        .replace(/&lt;/g,   '<')
+        .replace(/&gt;/g,   '>')
 }
 
 function glassCard (heading, bodyHTML)
@@ -98,13 +113,9 @@ function loading (msg = 'Casting spell…')
 }
 
 // ── Plain text → HTML paragraphs ──────────────────────────
-// Patches referrerpolicy onto ALL img tags before innerHTML
-// is ever assigned — this fires before the browser sends
-// the request, so CDNs never see a Referer and allow the load.
 function plainToHtml (text)
 {
     if (!text) return ''
-    // Inject referrerpolicy into every <img before the browser fetches it
     const patched = text.replace(/<img(\s)/gi, '<img referrerpolicy="no-referrer"$1')
     if (/<[a-z][\s\S]*>/i.test(patched)) return patched
     return patched
@@ -115,24 +126,186 @@ function plainToHtml (text)
 }
 
 // ═══════════════════════════════════════════════════════════
-//  3. API STATUS
+//  3. SOUND HELPERS + SETTINGS
+// ═══════════════════════════════════════════════════════════
+
+const AUDIO_ENABLED_KEY       = 'audio_enabled'
+const AUDIO_MASTER_VOLUME_KEY = 'audio_master_volume'
+const AUDIO_MUSIC_VOLUME_KEY  = 'audio_music_volume'
+const AUDIO_MUTED_KEY         = 'audio_muted'
+const AUDIO_MUSIC_TRACK_KEY   = 'audio_music_track'
+
+function clamp01 (v)
+{
+    const n = Number(v)
+    if (Number.isNaN(n)) return 1
+    return Math.max(0, Math.min(1, n))
+}
+
+function getAudioEnabled ()
+{
+    return localStorage.getItem(AUDIO_ENABLED_KEY) !== 'false'
+}
+
+function getMasterVolume ()
+{
+    return clamp01(localStorage.getItem(AUDIO_MASTER_VOLUME_KEY) ?? 1)
+}
+
+function getMusicVolume ()
+{
+    return clamp01(localStorage.getItem(AUDIO_MUSIC_VOLUME_KEY) ?? 0.55)
+}
+
+function getMuted ()
+{
+    return localStorage.getItem(AUDIO_MUTED_KEY) === 'true'
+}
+
+function setAudioEnabled (enabled)
+{
+    localStorage.setItem(AUDIO_ENABLED_KEY, String(!!enabled))
+}
+
+function setMasterVolumeSetting (v)
+{
+    localStorage.setItem(AUDIO_MASTER_VOLUME_KEY, String(clamp01(v)))
+}
+
+function setMusicVolumeSetting (v)
+{
+    localStorage.setItem(AUDIO_MUSIC_VOLUME_KEY, String(clamp01(v)))
+}
+
+function setMutedSetting (muted)
+{
+    localStorage.setItem(AUDIO_MUTED_KEY, String(!!muted))
+}
+
+async function soundInvoke (method, ...args)
+{
+    if (!SOUND || typeof SOUND[method] !== 'function') return null
+    try
+    {
+        return await SOUND[method](...args)
+    }
+    catch (err)
+    {
+        console.warn(`[sound] ${method} failed:`, err?.message || err)
+        return null
+    }
+}
+
+async function playSfx (category)
+{
+    if (!getAudioEnabled() || getMuted()) return
+    await soundInvoke('playSfx', category)
+}
+
+async function playMusic (name = null)
+{
+    if (!getAudioEnabled() || getMuted()) return
+    if (name) localStorage.setItem(AUDIO_MUSIC_TRACK_KEY, name)
+    await soundInvoke('playMusic', name)
+}
+
+async function stopMusic ()
+{
+    await soundInvoke('stopMusic')
+}
+
+async function setMasterVolume (v)
+{
+    const n = clamp01(v)
+    setMasterVolumeSetting(n)
+    await soundInvoke('setMasterVolume', n)
+}
+
+async function setMusicVolume (v)
+{
+    const n = clamp01(v)
+    setMusicVolumeSetting(n)
+    await soundInvoke('setMusicVolume', n)
+}
+
+async function setMuteAll (muted)
+{
+    setMutedSetting(!!muted)
+    await soundInvoke('setMuteAll', !!muted)
+}
+
+async function applyAudioSettings ()
+{
+    await setMasterVolume(getMasterVolume())
+    await setMusicVolume(getMusicVolume())
+    await setMuteAll(getMuted())
+}
+
+async function ensureBackgroundMusic ()
+{
+    if (!getAudioEnabled() || getMuted()) return
+    const alreadyPlaying = await soundInvoke('isMusicPlaying')
+    if (alreadyPlaying === true) return
+
+    const savedTrack = localStorage.getItem(AUDIO_MUSIC_TRACK_KEY)
+    const tracks = await soundInvoke('listMusic')
+
+    if (savedTrack && Array.isArray(tracks) && tracks.includes(savedTrack))
+    {
+        await playMusic(savedTrack)
+        return
+    }
+
+    if (Array.isArray(tracks) && tracks.length > 0)
+    {
+        await playMusic(tracks[0])
+    }
+    else
+    {
+        await playMusic(null)
+    }
+}
+
+function wireUiClickSounds ()
+{
+    document.addEventListener('click', e =>
+    {
+        const target = e.target?.closest?.('button, .fav-tab, .news-card, .mal-card, [role="button"]')
+        if (!target) return
+        playSfx('ui')
+    })
+
+    document.addEventListener('mouseover', e =>
+    {
+        const target = e.target?.closest?.('button, .fav-tab')
+        if (!target) return
+        if (target.dataset.soundHoverBound === '1') return
+        target.dataset.soundHoverBound = '1'
+        target.addEventListener('mouseenter', () => playSfx('hover'), { passive: true })
+    })
+}
+
+// ═══════════════════════════════════════════════════════════
+//  4. API STATUS
 // ═══════════════════════════════════════════════════════════
 
 function setApiStatus (online)
 {
     apiDot.style.background = online ? '#4ade80' : '#f87171'
-    apiDot.style.boxShadow  = online ? '0 0 8px rgba(74,222,128,0.80)' : '0 0 8px rgba(248,113,113,0.80)'
-    apiStatus.textContent   = online ? 'Rails API' : 'API offline'
+    apiDot.style.boxShadow  = online
+        ? '0 0 8px rgba(74,222,128,0.80)'
+        : '0 0 8px rgba(248,113,113,0.80)'
+    apiStatus.textContent = online ? 'Rails API' : 'API offline'
     if (settingsBadge) settingsBadge.textContent = online ? 'Connected' : 'Offline'
 }
 
 // ═══════════════════════════════════════════════════════════
-//  4. NEWS — load, in-app reader, star/save
+//  5. NEWS — load, in-app reader, star/save
 // ═══════════════════════════════════════════════════════════
 
 function newsCardHTML (article)
 {
-    const date     = article.published_at
+    const date = article.published_at
         ? new Date(article.published_at).toLocaleDateString('en-ZA', {
             day: 'numeric', month: 'short', year: 'numeric'
         })
@@ -188,6 +361,7 @@ function closeNewsDetail ()
     newsWebview.src           = 'about:blank'
     const old = $('news-native-detail')
     if (old) old.remove()
+    playSfx('back')
 }
 
 async function showArticleDetail (article)
@@ -231,6 +405,8 @@ async function showArticleDetail (article)
     newsReader.appendChild(detail)
     $('news-detail-back').addEventListener('click', () => closeNewsDetail())
 
+    playSfx('open')
+
     const result = await API.get(`/api/news/content?url=${encodeURIComponent(article.url)}`)
     const body   = $('news-detail-body')
 
@@ -267,12 +443,12 @@ async function showArticleDetail (article)
           ${plainToHtml(result.data.content)}
         </div>`
 
-        // Intercept links — open in DDG webview
         detail.querySelectorAll('.article-full-content a').forEach(a => {
             a.addEventListener('click', e => {
                 e.preventDefault()
                 const href = a.getAttribute('href')
                 if (href) {
+                    playSfx('open')
                     window.navigateTo('search')
                     ddgWebview.src = href
                     ddgInput.value = a.textContent || ''
@@ -280,8 +456,6 @@ async function showArticleDetail (article)
             })
         })
 
-        // Style content images + placeholder on error
-        // referrerpolicy already injected by plainToHtml before fetch
         detail.querySelectorAll('.article-full-content img').forEach(el => {
             el.style.maxWidth     = '100%'
             el.style.borderRadius = '8px'
@@ -341,6 +515,7 @@ async function showArticleDetail (article)
         </div>`
 
         $('news-open-external')?.addEventListener('click', () => {
+            playSfx('open')
             window.navigateTo('search')
             ddgWebview.src = article.url
             ddgInput.value = article.title || ''
@@ -348,16 +523,24 @@ async function showArticleDetail (article)
     }
 }
 
-newsReaderBack.addEventListener('click', () => closeNewsDetail())
+newsReaderBack?.addEventListener('click', () => closeNewsDetail())
 
 async function checkHealth ()
 {
     btnHealth.textContent = 'Checking…'
     btnHealth.disabled    = true
+
+    playSfx('ui')
+
     const result = await API.get('/api/health')
     setApiStatus(result.ok)
+
     btnHealth.textContent = 'Check Health'
     btnHealth.disabled    = false
+
+    if (result.ok) playSfx('success')
+    else playSfx('error')
+
     return result.ok
 }
 
@@ -370,8 +553,8 @@ async function loadNews ()
     newsReader.style.display = 'none'
     newsList.style.display   = 'block'
 
-    // POST to /api/news/refresh — wipes DB and re-fetches live
-    // from ANN RSS so every button press returns fresh articles.
+    playSfx('ui')
+
     const result = await API.post('/api/news/refresh')
 
     if (!result.ok)
@@ -382,6 +565,7 @@ async function loadNews ()
             '\"Even the greatest mage cannot conjure what is not there.\"'
         )
         setApiStatus(false)
+        playSfx('error')
     }
     else
     {
@@ -413,10 +597,12 @@ async function loadNews ()
                         btn.textContent   = now ? '⭐' : '☆'
                         btn.style.opacity = now ? '1' : '0.35'
                         btn.title         = now ? 'Remove from favourites' : 'Save to favourites'
+                        playSfx(now ? 'success' : 'back')
                     }
                     catch (err)
                     {
                         console.error('[Star] article parse error:', err)
+                        playSfx('error')
                     }
                 })
             })
@@ -434,11 +620,13 @@ async function loadNews ()
                     catch (err)
                     {
                         console.error('[News] card parse error:', err)
+                        playSfx('error')
                     }
                 })
             })
         }
         setApiStatus(true)
+        playSfx('success')
     }
 
     btnNews.disabled    = false
@@ -446,15 +634,17 @@ async function loadNews ()
 }
 
 // ═══════════════════════════════════════════════════════════
-//  5. MAL SEARCH + IN-APP DETAIL + STAR/SAVE
+//  6. MAL SEARCH + IN-APP DETAIL + STAR/SAVE
 // ═══════════════════════════════════════════════════════════
 
 function malCardHTML (anime)
 {
-    const score    = anime.score    ? `⭐ ${anime.score}`       : ''
+    const score    = anime.score    ? `⭐ ${anime.score}`        : ''
     const eps      = anime.episodes ? `· ${anime.episodes} eps` : ''
     const status   = anime.status   || ''
-    const synopsis = anime.synopsis ? escHtml(anime.synopsis.slice(0, 180)) + '…' : '<em style="opacity:0.5;">No synopsis available.</em>'
+    const synopsis = anime.synopsis
+        ? escHtml(anime.synopsis.slice(0, 180)) + '…'
+        : '<em style="opacity:0.5;">No synopsis available.</em>'
     const img      = anime.images?.jpg?.image_url || anime.images?.webp?.image_url || ''
     const saved    = isFavAnime(anime.mal_id)
     const safeJson = escHtml(JSON.stringify(anime))
@@ -503,7 +693,6 @@ function showAnimeDetail (anime)
     const trailer = anime.trailer?.embed_url || null
     const saved   = isFavAnime(anime.mal_id)
 
-    // Extract video ID from Jikan embed URL
     const videoId  = trailer?.match(/embed\/([^?&/]+)/)?.[1] || null
     const watchUrl = videoId ? `https://www.youtube.com/watch?v=${videoId}` : null
 
@@ -600,7 +789,10 @@ function showAnimeDetail (anime)
       </div>
     </div>`
 
-    $('mal-back').addEventListener('click', () => searchMAL(malInput.value))
+    $('mal-back').addEventListener('click', () => {
+        playSfx('back')
+        searchMAL(malInput.value)
+    })
 
     $('detail-star-btn').addEventListener('click', () =>
     {
@@ -610,6 +802,7 @@ function showAnimeDetail (anime)
         btn.textContent   = now ? '⭐' : '☆'
         btn.style.opacity = now ? '1' : '0.4'
         btn.title         = now ? 'Remove from favourites' : 'Save to favourites'
+        playSfx(now ? 'success' : 'back')
     })
 
     if (watchUrl && window.api?.openExternal) {
@@ -617,16 +810,20 @@ function showAnimeDetail (anime)
         if (btn) {
             btn.addEventListener('click', () =>
             {
+                playSfx('open')
                 window.api.openExternal(watchUrl)
             })
         }
     }
 }
+
 async function searchMAL (query)
 {
     if (!query.trim()) return
     if (malEmpty) malEmpty.style.display = 'none'
     malOutput.innerHTML = loading('Searching the Grimoire…')
+
+    playSfx('ui')
 
     const sfw    = localStorage.getItem('sfw_filter') === 'true'
     const url    = `/api/anime/search?q=${encodeURIComponent(query.trim())}&sfw=${sfw}`
@@ -640,6 +837,7 @@ async function searchMAL (query)
             '"Not every tome is open to those who seek it."'
         )
         setApiStatus(false)
+        playSfx('error')
         return
     }
 
@@ -670,10 +868,12 @@ async function searchMAL (query)
                     btn.textContent   = now ? '⭐' : '☆'
                     btn.style.opacity = now ? '1' : '0.35'
                     btn.title         = now ? 'Remove from favourites' : 'Save to favourites'
+                    playSfx(now ? 'success' : 'back')
                 }
                 catch (err)
                 {
                     console.error('[Star] anime parse error:', err)
+                    playSfx('error')
                 }
             })
 
@@ -683,6 +883,7 @@ async function searchMAL (query)
                 const id = card.dataset.malId
                 if (!id) return
 
+                playSfx('open')
                 malOutput.innerHTML = loading('Opening grimoire entry…')
                 const detail = await API.get(`/api/anime/${id}`)
 
@@ -699,6 +900,7 @@ async function searchMAL (query)
                     catch
                     {
                         malOutput.innerHTML = emptyState('❄️', 'Could not load details.', '')
+                        playSfx('error')
                     }
                 }
             })
@@ -706,10 +908,11 @@ async function searchMAL (query)
     }
 
     setApiStatus(true)
+    playSfx('success')
 }
 
 // ═══════════════════════════════════════════════════════════
-//  6. FAVOURITES — render, tabs, remove
+//  7. FAVOURITES — render, tabs, remove
 // ═══════════════════════════════════════════════════════════
 
 const FAV_ANIME_KEY    = 'fav_anime'
@@ -820,6 +1023,7 @@ function renderFavourites ()
                 e.stopPropagation()
                 saveFavAnime(getFavAnime().filter(a => String(a.mal_id) !== String(btn.dataset.malId)))
                 renderFavourites()
+                playSfx('back')
             })
         })
 
@@ -830,6 +1034,7 @@ function renderFavourites ()
                 if (e.target.classList.contains('fav-remove-btn')) return
                 const id = card.dataset.malId
                 if (!id) return
+                playSfx('open')
                 window.navigateTo('mal')
                 if (malEmpty) malEmpty.style.display = 'none'
                 malOutput.innerHTML = loading('Opening grimoire entry…')
@@ -880,6 +1085,7 @@ function renderFavourites ()
                 e.stopPropagation()
                 saveFavArticles(getFavArticles().filter(a => a.url !== btn.dataset.url))
                 renderFavourites()
+                playSfx('back')
             })
         })
 
@@ -891,12 +1097,14 @@ function renderFavourites ()
                 try
                 {
                     const article = JSON.parse(unescHtml(card.dataset.article))
+                    playSfx('open')
                     window.navigateTo('news')
                     showArticleDetail(article)
                 }
                 catch (err)
                 {
                     console.error('[Fav] article parse error:', err)
+                    playSfx('error')
                 }
             })
         })
@@ -911,24 +1119,38 @@ document.querySelectorAll('.fav-tab').forEach(tab =>
         document.querySelectorAll('.fav-panel').forEach(p => p.style.display = 'none')
         tab.classList.add('active')
         $(tab.dataset.tab).style.display = 'block'
+        playSfx('ui')
     })
 })
 
 // ═══════════════════════════════════════════════════════════
-//  7. DUCKDUCKGO — full in-app webview
+//  8. DUCKDUCKGO — full in-app webview
 // ═══════════════════════════════════════════════════════════
 
-function ddgSearch (query) {
+function ddgSearch (query)
+{
     if (!query.trim()) return
     const url = `https://duckduckgo.com/?q=${encodeURIComponent(query.trim())}&kae=d&k1=-1&kp=-2`
     ddgWebview.src = url
+    playSfx('open')
 }
 
 if (ddgWebview)
 {
-    ddgBack.addEventListener('click',    () => ddgWebview.goBack())
-    ddgForward.addEventListener('click', () => ddgWebview.goForward())
-    ddgReload.addEventListener('click',  () => ddgWebview.reload())
+    ddgBack?.addEventListener('click', () => {
+        ddgWebview.goBack()
+        playSfx('back')
+    })
+
+    ddgForward?.addEventListener('click', () => {
+        ddgWebview.goForward()
+        playSfx('ui')
+    })
+
+    ddgReload?.addEventListener('click', () => {
+        ddgWebview.reload()
+        playSfx('ui')
+    })
 
     ddgWebview.addEventListener('did-navigate', e =>
     {
@@ -936,34 +1158,50 @@ if (ddgWebview)
         {
             const q = new URL(e.url).searchParams.get('q')
             if (q) ddgInput.value = decodeURIComponent(q)
-        } catch { /* non-DDG URL — ignore */ }
+        }
+        catch { /* non-DDG URL — ignore */ }
+
+        playSfx('ui')
     })
 }
 
 // ═══════════════════════════════════════════════════════════
-//  8. WATCH ANIME — 9Anime in-app webview
+//  9. WATCH ANIME — 9Anime in-app webview
 // ═══════════════════════════════════════════════════════════
 
 if (animeWebview)
 {
-    animeBack.addEventListener('click',    () => animeWebview.goBack())
-    animeForward.addEventListener('click', () => animeWebview.goForward())
-    animeReload.addEventListener('click',  () => animeWebview.reload())
+    animeBack?.addEventListener('click', () => {
+        animeWebview.goBack()
+        playSfx('back')
+    })
+
+    animeForward?.addEventListener('click', () => {
+        animeWebview.goForward()
+        playSfx('ui')
+    })
+
+    animeReload?.addEventListener('click', () => {
+        animeWebview.reload()
+        playSfx('ui')
+    })
 
     animeWebview.addEventListener('did-navigate', e =>
     {
         console.log('[9Anime] navigated to:', e.url)
+        playSfx('ui')
     })
 
     animeWebview.addEventListener('did-fail-load', e =>
     {
         if (e.errorCode === -3) return
         console.warn('[9Anime] load failed:', e.errorDescription)
+        playSfx('error')
     })
 }
 
 // ═══════════════════════════════════════════════════════════
-//  9. SETTINGS — SFW TOGGLE
+//  10. SETTINGS — SFW TOGGLE + AUDIO
 // ═══════════════════════════════════════════════════════════
 
 if (sfwToggle)
@@ -973,35 +1211,65 @@ if (sfwToggle)
     {
         localStorage.setItem('sfw_filter', sfwToggle.checked)
         console.log(`[Settings] SFW filter: ${sfwToggle.checked ? 'ON ✅' : 'OFF ❌'}`)
+        playSfx('ui')
+    })
+}
+
+if (musicVolumeSlider)
+{
+    musicVolumeSlider.value = String(Math.round(getMusicVolume() * 100))
+    musicVolumeSlider.addEventListener('input', () =>
+    {
+        setMusicVolume(Number(musicVolumeSlider.value) / 100)
+    })
+}
+
+if (masterVolumeSlider)
+{
+    masterVolumeSlider.value = String(Math.round(getMasterVolume() * 100))
+    masterVolumeSlider.addEventListener('input', () =>
+    {
+        setMasterVolume(Number(masterVolumeSlider.value) / 100)
+    })
+}
+
+if (muteAllToggle)
+{
+    muteAllToggle.checked = getMuted()
+    muteAllToggle.addEventListener('change', async () =>
+    {
+        await setMuteAll(muteAllToggle.checked)
+        if (!muteAllToggle.checked) await ensureBackgroundMusic()
     })
 }
 
 // ═══════════════════════════════════════════════════════════
-//  10. EVENT LISTENERS
+//  11. EVENT LISTENERS
 // ═══════════════════════════════════════════════════════════
 
-globalSearch.addEventListener('keydown', e =>
+globalSearch?.addEventListener('keydown', e =>
 {
     if (e.key !== 'Enter') return
     const q = globalSearch.value.trim()
     if (!q) return
+    playSfx('open')
     window.navigateTo('search')
     ddgInput.value = q
     ddgSearch(q)
     globalSearch.value = ''
 })
 
-btnHealth.addEventListener('click', checkHealth)
-btnNews.addEventListener('click',   loadNews)
+btnHealth?.addEventListener('click', checkHealth)
+btnNews?.addEventListener('click',   loadNews)
 
-ddgBtn.addEventListener('click', () => ddgSearch(ddgInput.value))
-ddgInput.addEventListener('keydown', e =>
+ddgBtn?.addEventListener('click', () => ddgSearch(ddgInput.value))
+ddgInput?.addEventListener('keydown', e =>
 {
     if (e.key === 'Enter') ddgSearch(ddgInput.value)
 })
 
-malBtn.addEventListener('click', () => searchMAL(malInput.value))
-malInput.addEventListener('keydown', e =>
+malBtn?.addEventListener('click', () => searchMAL(malInput.value))
+malInput?.addEventListener('keydown', e =>
 {
     if (e.key === 'Enter') searchMAL(malInput.value)
 })
@@ -1010,21 +1278,34 @@ document.addEventListener('keydown', e =>
 {
     if (e.ctrlKey && e.key === 'k') {
         e.preventDefault()
-        globalSearch.focus()
+        globalSearch?.focus()
+        playSfx('ui')
     }
 })
 
 if (window.api?.onNav) {
-    window.api.onNav(section => window.navigateTo(section))
+    window.api.onNav(section => {
+        playSfx('ui')
+        window.navigateTo(section)
+    })
 }
 
 // ═══════════════════════════════════════════════════════════
-//  11. BOOT SEQUENCE
+//  12. BOOT SEQUENCE
 // ═══════════════════════════════════════════════════════════
 ;(async () =>
 {
     setApiStatus(false)
     apiStatus.textContent = 'Connecting…'
-    await checkHealth()
+
+    wireUiClickSounds()
+    await applyAudioSettings()
+
+    const healthy = await checkHealth()
     renderFavourites()
+
+    if (healthy)
+    {
+        await ensureBackgroundMusic()
+    }
 })()

@@ -6,7 +6,8 @@
 //    Acts as the secure bridge between the sandboxed renderer
 //    process (app.js / nav.js) and privileged Electron/Node
 //    APIs. Only what is explicitly listed here is accessible
-//    to renderer code via window.api — nothing else leaks.
+//    to renderer code via window.api / window.sound — nothing
+//    else leaks.
 //
 //  Architecture:
 //    ┌─────────────┐   window.api.*   ┌──────────────┐
@@ -27,32 +28,15 @@
 //      inside this preload script (full sandbox blocks fetch).
 //    - Only string/plain-object data crosses the bridge;
 //      no functions or Node objects are ever forwarded.
-//
-//  IPC directions:
-//    Renderer → Main  :  ipcRenderer.send()    (fire-and-forget)
-//    Renderer → Main  :  ipcRenderer.invoke()  (async request/reply)
-//    Main → Renderer  :  ipcRenderer.on()      (push event)
-//
-//  Exposed API  (window.api):
-//  ┌─────────────────────┬────────────┬─────────────────────────────────┐
-//  │ Method              │ Direction  │ Description                     │
-//  ├─────────────────────┼────────────┼─────────────────────────────────┤
-//  │ .get(path)          │ R → Rails  │ HTTP GET to Rails API           │
-//  │ .post(path, body)   │ R → Rails  │ HTTP POST to Rails API          │
-//  │ .openExternal(url)  │ R → Main   │ Open URL in OS default browser  │
-//  │ .openLog()          │ R → Main   │ Open rails.log in text editor   │
-//  │ .winMinimize()      │ R → Main   │ Minimise window                 │
-//  │ .winMaximize()      │ R → Main   │ Toggle maximise / restore       │
-//  │ .winClose()         │ R → Main   │ Close window                    │
-//  │ .onWinMaximized(cb) │ Main → R   │ Fires when max state changes    │
-//  │ .onNav(cb)          │ Main → R   │ Fires on Ctrl+1…6 nav shortcut  │
-//  └─────────────────────┴────────────┴─────────────────────────────────┘
 // ═══════════════════════════════════════════════════════════
 
 const { contextBridge, shell, ipcRenderer } = require('electron')
 
 const RAILS_BASE = 'http://localhost:3001'
 
+// ───────────────────────────────────────────────────────────
+// Existing Frieren API (window.api)
+// ───────────────────────────────────────────────────────────
 contextBridge.exposeInMainWorld('api',
     {
         // ── Rails API — GET ──────────────────────────────────────
@@ -169,5 +153,78 @@ contextBridge.exposeInMainWorld('api',
         {
             if (typeof callback !== 'function') return
             ipcRenderer.on('navigate', (_event, section) => callback(section))
+        }
+    })
+
+// ───────────────────────────────────────────────────────────
+// FMOD Sound Engine API (window.sound)
+// ───────────────────────────────────────────────────────────
+// All methods here are thin wrappers around ipcRenderer.invoke()
+// handlers registered in main.js, which in turn call your
+// koffi / FMOD soundengine module. Renderer never touches
+// native DLLs directly.
+// ═══════════════════════════════════════════════════════════
+
+contextBridge.exposeInMainWorld('sound',
+    {
+        // ── SFX helpers ─────────────────────────────────────
+        // @param {string} category — e.g. 'ui', 'click', 'error'
+        //
+        playSfx (category)
+        {
+            const cat = String(category || '').toLowerCase()
+            return ipcRenderer.invoke('sound:play-sfx', cat)
+        },
+
+        // Play a random SFX from any loaded category.
+        playAny ()
+        {
+            return ipcRenderer.invoke('sound:play-any')
+        },
+
+        // ── Music helpers ───────────────────────────────────
+        // @param {string} name — track name from listMusic()
+        //
+        playMusic (name)
+        {
+            // If name is null/undefined, main.js can pick a default track.
+            return ipcRenderer.invoke('sound:play-music', name || null)
+        },
+
+        stopMusic ()
+        {
+            return ipcRenderer.invoke('sound:stop-music')
+        },
+
+        // ── Volume / mute ───────────────────────────────────
+        // @param {number} v — 0.0 … 1.0
+        //
+        setMasterVolume (v)
+        {
+            return ipcRenderer.invoke('sound:set-master-volume', Number(v))
+        },
+
+        setMusicVolume (v)
+        {
+            return ipcRenderer.invoke('sound:set-music-volume', Number(v))
+        },
+
+        setMuteAll (muted)
+        {
+            return ipcRenderer.invoke('sound:set-mute-all', !!muted)
+        },
+
+        // ── Introspection ───────────────────────────────────
+        // Returns array of track names (string[]).
+        async listMusic ()
+        {
+            return await ipcRenderer.invoke('sound:list-music')
+        },
+
+        // Returns boolean indicating whether a music channel
+        // is currently playing.
+        async isMusicPlaying ()
+        {
+            return await ipcRenderer.invoke('sound:is-music-playing')
         }
     })
