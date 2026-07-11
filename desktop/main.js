@@ -9,16 +9,33 @@ const fs = require('node:fs')
 const { spawn } = require('child_process')
 const http = require('http')
 
-// IMPORTANT: adjust this one line if your folder is named fmod_js instead of fmod
-const soundengine = require(path.join(__dirname, 'soundengine', 'fmod_js', 'fmod.js'))
+function findFmodModulePath()
+{
+    const candidates = [
+        path.resolve(__dirname, 'soundengine', 'fmod_js', 'fmod.js'),
+        path.resolve(__dirname, 'soundengine', 'fmod', 'fmod.js'),
+        path.resolve(__dirname, 'renderer', 'soundengine', 'fmod_js', 'fmod.js'),
+        path.resolve(__dirname, 'renderer', 'soundengine', 'fmod', 'fmod.js')
+    ]
+
+    for (const p of candidates)
+    {
+        console.log('[FMOD] checking module path:', p, 'exists=', fs.existsSync(p))
+        if (fs.existsSync(p)) return p
+    }
+
+    throw new Error(`FMOD module not found. Tried: ${candidates.join(' | ')}`)
+}
+
+const fmodModulePath = findFmodModulePath()
+console.log('[FMOD] loading module from:', fmodModulePath)
+const soundengine = require(fmodModulePath)
 
 const isDev = process.env.NODE_ENV === 'development'
 
 app.setPath(
     'userData',
-    app.isPackaged
-        ? path.join(path.dirname(process.execPath), '.electron-cache')
-        : path.join(__dirname, '.electron-cache')
+    app.isPackaged ? path.join(path.dirname(process.execPath), '.electron-cache') : path.join(__dirname, '.electron-cache')
 )
 
 let railsProcess = null
