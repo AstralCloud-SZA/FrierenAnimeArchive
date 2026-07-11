@@ -1,11 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Frieren Archive</title>
-
-  <!-- ── Content Security Policy ─────────────────────────── -->
+  <!-- CSP should be the first meta in <head> -->
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self' 'unsafe-inline';
                  img-src * data: blob:;
@@ -14,6 +10,10 @@
                  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
                  font-src 'self' https://fonts.gstatic.com data:;
                  connect-src *;">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frieren Archive</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,13 +30,14 @@
     <span class="titlebar-sub">Grimoire of Anime</span>
   </div>
   <div class="titlebar-controls">
-    <button class="tb-btn" id="tb-min" title="Minimise">&#8722;</button>
-    <button class="tb-btn" id="tb-max" title="Maximise">&#9633;</button>
-    <button class="tb-btn close" id="tb-close" title="Close">&#10005;</button>
+    <button class="tb-btn" id="tb-min" type="button" title="Minimise">&#8722;</button>
+    <button class="tb-btn" id="tb-max" type="button" title="Maximise">&#9633;</button>
+    <button class="tb-btn close" id="tb-close" type="button" title="Close">&#10005;</button>
   </div>
 </div>
 
-<canvas id="snow-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;"></canvas>
+<canvas id="snow-canvas"
+        style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;"></canvas>
 
 <div class="app-shell">
 
@@ -98,18 +99,23 @@
       Frieren Archive &rsaquo;
       <span class="page-name" id="page-name">News</span>
     </div>
+
     <div class="header-search">
       <span class="header-search-icon">🔮</span>
-      <input type="text" id="global-search"
-             placeholder="Search the world… (DuckDuckGo) · Ctrl+K">
+      <input
+              type="text"
+              id="global-search"
+              placeholder="Search the world… (DuckDuckGo) · Ctrl+K"
+      >
     </div>
+
     <div class="header-actions">
       <div class="status-pill">
         <div class="status-dot" id="api-dot"></div>
         <span id="api-status">Connecting…</span>
       </div>
-      <button class="header-btn" id="btn-health">Check Health</button>
-      <button class="header-btn primary" id="btn-news">Load News</button>
+      <button class="header-btn" id="btn-health" type="button">Check Health</button>
+      <button class="header-btn primary" id="btn-news" type="button">Load News</button>
     </div>
   </header>
 
@@ -117,7 +123,7 @@
   <main class="main">
 
     <!-- ── NEWS ── -->
-    <div class="section visible" id="section-news">
+    <section class="section visible" id="section-news">
 
       <div class="glass-card">
         <div class="card-heading">📜 Latest Anime News</div>
@@ -138,34 +144,29 @@
         <div class="glass-card">
           <div class="card-heading"
                style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-            <span id="news-reader-back"
-                  style="cursor:pointer;opacity:0.65;font-size:14px;letter-spacing:0.1em;
-                         transition:opacity 0.2s;"
-                  onmouseover="this.style.opacity=1"
-                  onmouseout="this.style.opacity=0.65">← Back to News</span>
+              <span id="news-reader-back"
+                    style="cursor:pointer;opacity:0.65;font-size:14px;letter-spacing:0.1em;transition:opacity 0.2s;"
+                    onmouseover="this.style.opacity=1"
+                    onmouseout="this.style.opacity=0.65">← Back to News</span>
             <span id="news-reader-title">Article</span>
           </div>
         </div>
+
         <webview
+                class="webview"
                 id="news-webview"
                 src="about:blank"
                 partition="persist:news"
                 useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                style="width:100%;
-                       height:calc(100vh - 240px);
-                       min-height:500px;
-                       margin-top:12px;
-                       border:1px solid var(--border);
-                       border-radius:12px;
-                       background:#020408;"
+                style="width:100%;height:calc(100vh - 240px);min-height:500px;margin-top:12px;border:1px solid var(--border);border-radius:12px;background:#020408;"
                 allowpopups>
         </webview>
       </div>
 
-    </div>
+    </section>
 
-    <!-- ── MYANIME LIST ── -->
-    <div class="section" id="section-mal">
+    <!-- ── MYANIMELIST ── -->
+    <section class="section" id="section-mal">
 
       <div class="glass-card">
         <div class="card-heading">📖 MyAnimeList · Jikan Search</div>
@@ -177,10 +178,14 @@
 
       <div class="search-bar-large">
         <span class="search-ico">📖</span>
-        <input type="text" id="mal-input"
-               placeholder="Search anime titles… e.g. Frieren, Bleach, Berserk">
+        <input
+                type="text"
+                id="mal-input"
+                placeholder="Search anime titles… e.g. Frieren, Bleach, Berserk"
+        >
       </div>
-      <button class="search-btn" id="mal-btn">Search Anime</button>
+
+      <button class="search-btn" id="mal-btn" type="button">Search Anime</button>
 
       <div id="mal-output" style="margin-top:20px;"></div>
 
@@ -190,10 +195,10 @@
         <em>"Knowledge gained through long years of study is never truly lost."</em>
       </div>
 
-    </div>
+    </section>
 
-    <!-- ── QUICK SEARCH · DuckDuckGo webview ── -->
-    <div class="section" id="section-search">
+    <!-- ── QUICK SEARCH ── -->
+    <section class="section" id="section-search">
 
       <div class="glass-card">
         <div class="card-heading">🔮 Quick Search · DuckDuckGo</div>
@@ -205,36 +210,33 @@
       <div class="ddg-toolbar">
         <div class="search-bar-large" style="flex:1;margin:0;">
           <span class="search-ico">🔮</span>
-          <input type="text" id="ddg-input"
-                 placeholder="Ask anything… e.g. Frieren season 2 release date">
+          <input
+                  type="text"
+                  id="ddg-input"
+                  placeholder="Ask anything… e.g. Frieren season 2 release date"
+          >
         </div>
-        <button class="search-btn" id="ddg-btn"
-                style="margin:0;white-space:nowrap;">Search</button>
-        <button class="header-btn" id="ddg-back" title="Back">←</button>
-        <button class="header-btn" id="ddg-forward" title="Forward">→</button>
-        <button class="header-btn" id="ddg-reload" title="Reload">↺</button>
+        <button class="search-btn" id="ddg-btn" type="button" style="margin:0;white-space:nowrap;">Search</button>
+        <button class="header-btn" id="ddg-back" type="button" title="Back">←</button>
+        <button class="header-btn" id="ddg-forward" type="button" title="Forward">→</button>
+        <button class="header-btn" id="ddg-reload" type="button" title="Reload">↺</button>
       </div>
 
       <webview
+              class="webview"
               id="ddg-webview"
               src="https://duckduckgo.com/?kae=d&k1=-1&kp=-2"
               partition="persist:browser"
               useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-              style="width:100%;
-                     height:calc(100vh - 280px);
-                     min-height:420px;
-                     margin-top:12px;
-                     border:1px solid var(--border);
-                     border-radius:12px;
-                     background:#020408;"
+              style="width:100%;height:calc(100vh - 280px);min-height:420px;margin-top:12px;border:1px solid var(--border);border-radius:12px;background:#020408;"
               allowpopups
               disablewebsecurity>
       </webview>
 
-    </div>
+    </section>
 
     <!-- ── FAVOURITES ── -->
-    <div class="section" id="section-favorites">
+    <section class="section" id="section-favorites">
 
       <div class="glass-card">
         <div class="card-heading">⭐ Favourites</div>
@@ -242,8 +244,8 @@
       </div>
 
       <div class="fav-tabs">
-        <button class="fav-tab active" data-tab="fav-anime">📖 Anime</button>
-        <button class="fav-tab" data-tab="fav-articles">📜 Articles</button>
+        <button class="fav-tab active" data-tab="fav-anime" type="button">📖 Anime</button>
+        <button class="fav-tab" data-tab="fav-articles" type="button">📜 Articles</button>
       </div>
 
       <div id="fav-anime" class="fav-panel">
@@ -264,10 +266,10 @@
         <div class="news-list" id="fav-articles-list"></div>
       </div>
 
-    </div>
+    </section>
 
     <!-- ── WATCH ANIME ── -->
-    <div class="section" id="section-anime">
+    <section class="section" id="section-anime">
 
       <div class="glass-card">
         <div class="card-heading">🎬 Watch Anime &mdash; 9Anime</div>
@@ -275,31 +277,26 @@
       </div>
 
       <div class="ddg-toolbar">
-        <button class="header-btn" id="anime-back" title="Back">&#8592;</button>
-        <button class="header-btn" id="anime-forward" title="Forward">&#8594;</button>
-        <button class="header-btn" id="anime-reload" title="Reload">&#8635;</button>
+        <button class="header-btn" id="anime-back" type="button" title="Back">&#8592;</button>
+        <button class="header-btn" id="anime-forward" type="button" title="Forward">&#8594;</button>
+        <button class="header-btn" id="anime-reload" type="button" title="Reload">&#8635;</button>
       </div>
 
       <webview
+              class="webview"
               id="anime-webview"
               src="https://9anime.org.lv"
               partition="persist:anime"
               useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-              style="width:100%;
-                     height:calc(100vh - 200px);
-                     min-height:500px;
-                     margin-top:12px;
-                     border:1px solid var(--border);
-                     border-radius:12px;
-                     background:#c6d3e8;"
+              style="width:100%;height:calc(100vh - 200px);min-height:500px;margin-top:12px;border:1px solid var(--border);border-radius:12px;background:#c6d3e8;"
               allowpopups
               disablewebsecurity>
       </webview>
 
-    </div>
+    </section>
 
-    <!-- ── READ MANGA · MangaDex webview ── -->
-    <div class="section" id="section-manga">
+    <!-- ── READ MANGA ── -->
+    <section class="section" id="section-manga">
 
       <div class="glass-card">
         <div class="card-heading">📚 Read Manga — MangaDex</div>
@@ -312,26 +309,22 @@
         <span class="search-ico">📚</span>
         <input type="text" id="manga-input" placeholder="Search manga… e.g. Frieren">
       </div>
-      <button class="search-btn" id="manga-btn">Find Manga</button>
+
+      <button class="search-btn" id="manga-btn" type="button">Find Manga</button>
 
       <div class="ddg-toolbar">
-        <button class="header-btn" id="manga-back" title="Back">&#8592;</button>
-        <button class="header-btn" id="manga-forward" title="Forward">&#8594;</button>
-        <button class="header-btn" id="manga-reload" title="Reload">&#8635;</button>
+        <button class="header-btn" id="manga-back" type="button" title="Back">&#8592;</button>
+        <button class="header-btn" id="manga-forward" type="button" title="Forward">&#8594;</button>
+        <button class="header-btn" id="manga-reload" type="button" title="Reload">&#8635;</button>
       </div>
 
       <webview
+              class="webview"
               id="manga-webview"
               src="about:blank"
               partition="persist:manga"
               useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-              style="width:100%;
-                     height:calc(100vh - 420px);
-                     min-height:380px;
-                     margin-top:12px;
-                     border:1px solid var(--border);
-                     border-radius:12px;
-                     background:#020408;"
+              style="width:100%;height:calc(100vh - 420px);min-height:380px;margin-top:12px;border:1px solid var(--border);border-radius:12px;background:#020408;"
               allowpopups
               disablewebsecurity>
       </webview>
@@ -339,10 +332,10 @@
       <div class="card-heading" style="margin-top:20px;">🕘 Recently Read</div>
       <div class="news-list" id="manga-history-list"></div>
 
-    </div>
+    </section>
 
     <!-- ── SETTINGS ── -->
-    <div class="section" id="section-settings">
+    <section class="section" id="section-settings">
 
       <div class="glass-card">
         <div class="card-heading">⚙️ Settings</div>
@@ -386,13 +379,15 @@
                   <div class="setting-desc">Overall app output level</div>
                 </div>
                 <div class="setting-control-row">
-                  <input class="audio-range"
-                         type="range"
-                         id="master-volume"
-                         min="0"
-                         max="100"
-                         step="1"
-                         value="100">
+                  <input
+                          class="audio-range"
+                          type="range"
+                          id="master-volume"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value="100"
+                  >
                   <span class="badge" id="master-volume-value">100%</span>
                 </div>
               </div>
@@ -405,13 +400,15 @@
                   <div class="setting-desc">Background soundtrack level</div>
                 </div>
                 <div class="setting-control-row">
-                  <input class="audio-range"
-                         type="range"
-                         id="music-volume"
-                         min="0"
-                         max="100"
-                         step="1"
-                         value="55">
+                  <input
+                          class="audio-range"
+                          type="range"
+                          id="music-volume"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value="55"
+                  >
                   <span class="badge" id="music-volume-value">55%</span>
                 </div>
               </div>
@@ -424,13 +421,15 @@
                   <div class="setting-desc">UI clicks, navigation, feedback sounds</div>
                 </div>
                 <div class="setting-control-row">
-                  <input class="audio-range"
-                         type="range"
-                         id="sfx-volume"
-                         min="0"
-                         max="100"
-                         step="1"
-                         value="100">
+                  <input
+                          class="audio-range"
+                          type="range"
+                          id="sfx-volume"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value="100"
+                  >
                   <span class="badge" id="sfx-volume-value">100%</span>
                 </div>
               </div>
@@ -531,7 +530,7 @@
         </div>
       </div>
 
-    </div>
+    </section>
 
   </main>
 </div>
