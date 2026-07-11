@@ -25,11 +25,7 @@ const isDev = process.env.NODE_ENV === 'development'
 // ── userData path ─────────────────────────────────────────
 // In packaged builds __dirname is inside a read-only ASAR,
 // so we anchor userData to the exe's sibling directory instead.
-app.setPath('userData',
-    app.isPackaged
-        ? path.join(path.dirname(process.execPath), '.electron-cache')
-        : path.join(__dirname, '.electron-cache')
-)
+app.setPath('userData', app.isPackaged ? path.join(path.dirname(process.execPath), '.electron-cache') : path.join(__dirname, '.electron-cache'))
 
 // ═══════════════════════════════════════════════════════════
 //  Port Eviction — Windows stale-process fix
@@ -69,9 +65,8 @@ function freePort(port)
         {
             // Last whitespace-delimited token on each line is the PID.
             const pids = [...new Set(
-                output.split('\n')
-                    .map(line => line.trim().split(/\s+/).pop())
-                    .filter(pid => pid && /^\d+$/.test(pid) && pid !== '0')
+                output.split('\n').map(line => line.trim().split(/\s+/).pop())
+                   .filter(pid => pid && /^\d+$/.test(pid) && pid !== '0')
             )]
 
             if (pids.length === 0) return resolve()
@@ -82,10 +77,7 @@ function freePort(port)
             for (const pid of pids)
             {
                 // /f = force  /t = include entire child-process tree
-                const killer = spawn(
-                    'taskkill', ['/pid', pid, '/f', '/t'],
-                    { windowsHide: true }
-                )
+                const killer = spawn('taskkill', ['/pid', pid, '/f', '/t'], { windowsHide: true })
                 killer.on('close', () => { if (--pending === 0) resolve() })
             }
 
@@ -139,23 +131,15 @@ function startRails()
     // In packaged builds we point Ruby exclusively at the gems
     // vendored inside rails-api/vendor/bundle so it never
     // touches the user's system Ruby or gem directories.
-    const bundlePath = app.isPackaged
-        ? path.join(railsDir, 'vendor', 'bundle')
-        : undefined
+    const bundlePath = app.isPackaged ? path.join(railsDir, 'vendor', 'bundle') : undefined
 
-    const gemHome = app.isPackaged
-        ? path.join(railsDir, 'vendor', 'bundle', 'ruby', '3.4.0')
-        : undefined
+    const gemHome = app.isPackaged ? path.join(railsDir, 'vendor', 'bundle', 'ruby', '3.4.0') : undefined
 
     // GEM_PATH must include BOTH the vendored gems AND the Ruby
     // runtime's built-in stdlib gems (e.g. json, psych, stringio).
     // Without the stdlib path, boot-time requires fail silently.
-    const gemPath = app.isPackaged
-        ? [
-            path.join(railsDir, 'vendor', 'bundle', 'ruby', '3.4.0'),
-            path.join(process.resourcesPath, 'ruby-runtime', 'lib', 'ruby', 'gems', '3.4.0')
-        ].join(path.delimiter)
-        : undefined
+    const gemPath = app.isPackaged ? [path.join(railsDir, 'vendor', 'bundle', 'ruby', '3.4.0'),
+          path.join(process.resourcesPath, 'ruby-runtime', 'lib', 'ruby', 'gems', '3.4.0')].join(path.delimiter) : undefined
 
     logStream.write(`bundlePath : ${bundlePath}\n`)
     logStream.write(`gemHome    : ${gemHome}\n`)
@@ -251,7 +235,7 @@ function startRails()
 }
 
 // ═══════════════════════════════════════════════════════════
-//  Health-check polling
+//  Health check polling
 // ═══════════════════════════════════════════════════════════
 // Poll /api/health every 500 ms — swap loading → index once
 // Rails responds 200. Falls through after 60 retries (30 s)
@@ -260,7 +244,7 @@ function startRails()
 // cold-cache compile time on first launch.
 //
 // /api/health is used instead of Rails' built-in /up because
-// this app does not mount the default healthcheck route.
+// this app does not mount the default health check route.
 function waitForRails(callback, retries = 60)
 {
     http.get('http://localhost:3001/api/health', res =>
@@ -325,8 +309,11 @@ function createWindow()
         {
             return callback({ responseHeaders: details.responseHeaders })
         }
-        callback({
-            responseHeaders: {
+
+        callback(
+            {
+            responseHeaders:
+                {
                 ...details.responseHeaders,
                 'Content-Security-Policy': [
                     [
@@ -348,15 +335,12 @@ function createWindow()
     // ── Strip Referer from image requests ─────────────────
     // ANN / MAL CDNs block hotlinks when a Referer header is
     // present. Removing it makes requests look like direct visits.
-    session.defaultSession.webRequest.onBeforeSendHeaders(
-        { urls: ['https://*/*', 'http://*/*'] },
-        (details, callback) =>
+    session.defaultSession.webRequest.onBeforeSendHeaders({ urls: ['https://*/*', 'http://*/*'] }, (details, callback) =>
         {
             const headers = { ...details.requestHeaders }
-            if (
-                headers['Accept']?.includes('image') ||
-                /\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i.test(details.url)
-            ) {
+
+            if (headers['Accept']?.includes('image') || /\.(jpe?g|png|gif|webp|avif|svg)(\?|$)/i.test(details.url))
+            {
                 delete headers['Referer']
                 delete headers['Origin']
             }

@@ -5,9 +5,7 @@ const koffi = require('koffi');
 
 function resourcePath(...segments)
 {
-    return app && app.isPackaged
-        ? path.join(process.resourcesPath, ...segments)
-        : path.join(__dirname, ...segments);
+    return app && app.isPackaged ? path.join(process.resourcesPath, ...segments) : path.join(__dirname, ...segments);
 }
 
 function getFmodDllPath()

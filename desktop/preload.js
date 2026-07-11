@@ -226,5 +226,25 @@ contextBridge.exposeInMainWorld('sound',
         async isMusicPlaying ()
         {
             return await ipcRenderer.invoke('sound:is-music-playing')
+        },
+
+        setSfxVolume (v)
+        {
+            return ipcRenderer.invoke('sound:set-sfx-volume', Number(v))
+        },
+
+        async listOutputDevices ()
+        {
+            return await ipcRenderer.invoke('sound:list-output-devices')
+        },
+
+        setOutputDevice (index)
+        {
+            return ipcRenderer.invoke('sound:set-output-device', Number(index))
+        },
+
+        async categories ()
+        {
+            return await ipcRenderer.invoke('sound:categories')
         }
     })
