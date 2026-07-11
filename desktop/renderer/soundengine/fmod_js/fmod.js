@@ -3,26 +3,39 @@ const path = require('path');
 const fs = require('fs');
 const koffi = require('koffi');
 
+function appRootPath(...segments)
+{
+    return app && app.isPackaged ? path.join(process.resourcesPath, ...segments) : path.join(__dirname, '..', '..', '..', ...segments);
+}
+
 function resourcePath(...segments)
 {
-    return app && app.isPackaged ? path.join(process.resourcesPath, ...segments) : path.join(__dirname, ...segments);
+    return appRootPath(...segments);
 }
 
 function getFmodDllPath()
 {
     const candidates = app && app.isPackaged
         ? [
-            path.join(process.resourcesPath, 'soundengine', 'fmod_js.dll'),
-            path.join(process.resourcesPath, 'fmod_js.dll')
+            path.join(process.resourcesPath, 'renderer', 'soundengine', 'fmod_js', 'fmod.dll'),
+            path.join(process.resourcesPath, 'renderer', 'soundengine', 'fmod_js', 'fmodL.dll'),
+            path.join(process.resourcesPath, 'soundengine', 'fmod_js', 'fmod.dll'),
+            path.join(process.resourcesPath, 'soundengine', 'fmod_js', 'fmodL.dll'),
+            path.join(process.resourcesPath, 'fmod.dll'),
+            path.join(process.resourcesPath, 'fmodL.dll')
         ]
         : [
-            path.join(__dirname, 'soundengine', 'fmod_js.dll'),
-            path.join(__dirname, '..', 'soundengine', 'fmod_js.dll'),
-            path.join(process.cwd(), 'soundengine', 'fmod_js.dll')
+            path.join(__dirname, 'fmod.dll'),
+            path.join(__dirname, 'fmodL.dll'),
+            path.join(__dirname, '..', 'fmod.dll'),
+            path.join(__dirname, '..', 'fmodL.dll'),
+            path.join(process.cwd(), 'renderer', 'soundengine', 'fmod_js', 'fmod.dll'),
+            path.join(process.cwd(), 'renderer', 'soundengine', 'fmod_js', 'fmodL.dll')
         ];
 
     for (const p of candidates)
     {
+        console.log('[fmod_js] checking DLL path:', p, 'exists=', fs.existsSync(p));
         if (p && fs.existsSync(p)) return p;
     }
 
@@ -91,10 +104,8 @@ let musicGroup = null;
 let updateTimer = null;
 let diagTimer = null;
 
-
 const library = {};
 const shuffleState = {};
-
 
 function loadLibrary()
 {
@@ -150,14 +161,14 @@ function nextFile(cat)
     return file;
 }
 
-
-
 function init()
 {
     log('Initializing FMOD');
     log('DLL path:', dllPath);
     log('Process cwd:', process.cwd());
     log('Module dir:', __dirname);
+    log('Audio dir:', AUDIO_DIR);
+    log('Music dir:', MUSIC_DIR);
 
     const sysOut = [null];
     check(FMOD_System_Create(sysOut, FMOD_VERSION), 'System_Create');
@@ -288,10 +299,6 @@ function play(category)
                 return;
             }
 
-            const pausedOut2 = [0];
-            const rp = FMOD_Channel_GetPaused(channel, pausedOut2);
-            // log(`poll #${pollCount} for ${path.basename(file)} -> playing=${playingOut[0]} pausedRc=${rp} paused=${pausedOut2[0]}`);
-
             if (playingOut[0] !== 1)
             {
                 log(`SFX finished for ${file}; releasing sound ptr ${ptrLabel(sound)}`);
@@ -372,10 +379,8 @@ function playMusic(name, { fadeMs = 1200 } = {})
 
     const soundOut = [null];
     const createRc = FMOD_System_CreateSound(system, track.path, FMOD_2D | FMOD_LOOP_OFF | FMOD_ACCURATETIME, null, soundOut);
-    log('[music] CreateSound rc:', createRc);
     check(createRc, 'CreateSound(music)');
     const newSound = soundOut[0];
-    log('[music] sound ptr ->', ptrLabel(newSound));
 
     const lenOut = [0];
     const lenRc = FMOD_Sound_GetLength(newSound, lenOut, FMOD_TIMEUNIT_MS);
@@ -391,13 +396,10 @@ function playMusic(name, { fadeMs = 1200 } = {})
         warn('[music] GetLength failed rc:', lenRc, '-> track length unknown, watcher will use IsPlaying fallback');
     }
 
-    log('[music] track length ms:', trackLengthMs, '(rc:', lenRc + ')');
     const chanOut = [null];
     const playRc = FMOD_System_PlaySound(system, newSound, musicGroup, 0, chanOut);
-    log('[music] PlaySound rc:', playRc);
     check(playRc, 'PlaySound(music)');
     const newChannel = chanOut[0];
-    log('[music] channel ptr ->', ptrLabel(newChannel));
 
     FMOD_Channel_SetVolume(newChannel, 0.0);
 
@@ -470,8 +472,6 @@ function isMusicPlaying()
     return r === 0 && out[0] === 1;
 }
 
-
-//
 function categories()
 {
     return Object.keys(library).map(c => ({ category: c, count: library[c].length }));
@@ -545,7 +545,6 @@ function startMusicEndWatcher()
         {
             const safeLead = Math.min(1300, Math.max(250, Math.floor(watchLengthMs * 0.05)));
             const endThreshold = Math.max(0, watchLengthMs - safeLead);
-            log('[music watcher] poll', { track: watchTrack, posMs, watchLengthMs, endThreshold, posRc });
 
             if (posMs >= endThreshold)
             {
@@ -564,8 +563,6 @@ function startMusicEndWatcher()
         const rc = FMOD_Channel_IsPlaying(watchChannel, out);
         const playing = out[0] === 1;
 
-        log('[music watcher] fallback poll', { track: watchTrack, posRc, rc, playing, notPlayingCount });
-
         if (rc === 0 && playing)
         {
             notPlayingCount = 0;
@@ -579,7 +576,6 @@ function startMusicEndWatcher()
         musicEndWatcher = null;
         log('[music watcher] fallback: track ended');
         advanceToNextTrack(watchTrack);
-
     }, 500);
 }
 
@@ -607,8 +603,6 @@ function shutdown()
         log('FMOD system released');
     }
 }
-
-// Setting Values Functions
 
 function clamp01(v)
 {
@@ -654,8 +648,6 @@ function setMuteAll(muted)
     dumpMixerState('after setMuteAll');
 }
 
-//HELPERS  & DEBUGGING
-
 function dumpMusicState(context = 'snapshot')
 {
     log(`==== MUSIC STATE (${context}) ====`);
@@ -676,9 +668,10 @@ function loadMusicList()
     log('Scanning music directory:', MUSIC_DIR);
     if (!fs.existsSync(MUSIC_DIR))
     {
-        warn('No music dir (create electron-app/audiofiles/Friday_Magic) at', MUSIC_DIR);
+        warn('No music dir at', MUSIC_DIR);
         return;
     }
+
     const exts = ['.mp3', '.ogg', '.wav', '.flac'];
     const files = fs.readdirSync(MUSIC_DIR).filter(f => exts.includes(path.extname(f).toLowerCase()));
     musicTracks = files.map(f => ({ name: path.parse(f).name, path: path.join(MUSIC_DIR, f) }));
@@ -787,8 +780,6 @@ function ptrLabel(value)
     catch (_) { return '[ptr]'; }
 }
 
-
-
 function categoryOf(filename)
 {
     return filename.split('_')[0].toLowerCase();
@@ -802,4 +793,3 @@ module.exports = {
     listOutputDevices, setOutputDevice,
     shutdown
 };
-
