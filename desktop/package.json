@@ -28,6 +28,7 @@
     "electron": "^41.0.3"
   },
   "dependencies": {
-    "electron-squirrel-startup": "^1.0.1"
+    "electron-squirrel-startup": "^1.0.1",
+    "koffi": "^3.0.2"
   }
 }
