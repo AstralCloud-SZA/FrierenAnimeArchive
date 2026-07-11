@@ -12,13 +12,13 @@ function getFmodDllPath()
 {
     const candidates = app && app.isPackaged
         ? [
-            path.join(process.resourcesPath, 'soundengine', 'fmod.dll'),
-            path.join(process.resourcesPath, 'fmod.dll')
+            path.join(process.resourcesPath, 'soundengine', 'fmod_js.dll'),
+            path.join(process.resourcesPath, 'fmod_js.dll')
         ]
         : [
-            path.join(__dirname, 'soundengine', 'fmod.dll'),
-            path.join(__dirname, '..', 'soundengine', 'fmod.dll'),
-            path.join(process.cwd(), 'soundengine', 'fmod.dll')
+            path.join(__dirname, 'soundengine', 'fmod_js.dll'),
+            path.join(__dirname, '..', 'soundengine', 'fmod_js.dll'),
+            path.join(process.cwd(), 'soundengine', 'fmod_js.dll')
         ];
 
     for (const p of candidates)
@@ -761,9 +761,9 @@ function setOutputDevice(index)
     dumpMixerState('after setOutputDevice');
 }
 
-function log(...args) { console.log('[fmod]', ...args); }
-function warn(...args) { console.warn('[fmod]', ...args); }
-function err(...args) { console.error('[fmod]', ...args); }
+function log(...args) { console.log('[fmod_js]', ...args); }
+function warn(...args) { console.warn('[fmod_js]', ...args); }
+function err(...args) { console.error('[fmod_js]', ...args); }
 
 function check(result, label)
 {
