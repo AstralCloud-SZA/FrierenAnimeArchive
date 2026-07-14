@@ -110,3 +110,4 @@ vendor/bundle/
 # Set locally per machine — never commit.
 .bundle/
 desktop/.bundle/
+desktop/out/make/zip/win32/x64/Frieren Anime Archive-win32-x64-2.26.85.zip
