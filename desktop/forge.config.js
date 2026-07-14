@@ -62,7 +62,18 @@ function copyDirForce(src, dst)
 
 module.exports = {
   packagerConfig: {
-    asar: true,
+    // Keep ASAR enabled but unpack native/FM0D-related assets so DLLs and
+    // audio files are available as real files at runtime.
+    //
+    // This tells Electron Packager / asar:
+    //   - unpack everything under renderer/soundengine (DLLs, JS, styles)
+    //   - unpack everything under audiofiles (all sound assets)
+    // into app.asar.unpacked instead of app.asar.
+    // Brace expansion for multiple dirs follows the asar CLI docs.[web:47][web:48]
+    asar: {
+      unpackDir: '{renderer/soundengine,audiofiles}'
+    },
+
     name: 'Frieren Anime Archive',
     icon: './Icon/f1'
   },

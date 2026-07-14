@@ -3,9 +3,17 @@ const path = require('path');
 const fs = require('fs');
 const koffi = require('koffi');
 
+// ── Resource path resolver ─────────────────────────────────
+// In production, files matched by asar.unpackDir (renderer/soundengine,
+// audiofiles) live inside resources/app.asar.unpacked/..., NOT directly
+// in resources/. This resolver accounts for that.
 function appRootPath(...segments)
 {
-    return app && app.isPackaged ? path.join(process.resourcesPath, ...segments) : path.join(__dirname, '..', '..', '..', ...segments);
+    if (app && app.isPackaged)
+    {
+        return path.join(process.resourcesPath, 'app.asar.unpacked', ...segments);
+    }
+    return path.join(__dirname, '..', '..', '..', ...segments);
 }
 
 function resourcePath(...segments)
@@ -13,10 +21,17 @@ function resourcePath(...segments)
     return appRootPath(...segments);
 }
 
+// ── FMOD DLL resolver ──────────────────────────────────────
 function getFmodDllPath()
 {
     const candidates = app && app.isPackaged
         ? [
+            // ✅ Primary: correct path when using asar.unpackDir
+            path.join(process.resourcesPath, 'app.asar.unpacked', 'renderer', 'soundengine', 'fmod_js', 'fmod.dll'),
+            path.join(process.resourcesPath, 'app.asar.unpacked', 'renderer', 'soundengine', 'fmod_js', 'fmodL.dll'),
+
+            // Fallbacks: in case DLLs were instead copied directly into resources/
+            // via a postPackage hook rather than asar.unpackDir
             path.join(process.resourcesPath, 'renderer', 'soundengine', 'fmod_js', 'fmod.dll'),
             path.join(process.resourcesPath, 'renderer', 'soundengine', 'fmod_js', 'fmodL.dll'),
             path.join(process.resourcesPath, 'soundengine', 'fmod_js', 'fmod.dll'),
@@ -39,7 +54,7 @@ function getFmodDllPath()
         if (p && fs.existsSync(p)) return p;
     }
 
-    throw new Error(`FMOD DLL not found. Tried: ${candidates.join(' | ')}`);
+    throw new Error(`FMOD DLL not found. Tried:\n${candidates.join('\n')}`);
 }
 
 const dllPath = getFmodDllPath();
