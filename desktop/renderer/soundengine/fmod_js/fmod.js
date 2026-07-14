@@ -22,24 +22,24 @@ function getFmodDllPath()
 {
     const candidates = app && app.isPackaged
         ? [
-            // ✅ Primary: matches the postPackage hook copy target
-            // resources/soundengine/fmod_js/fmod.dll
+            // ✅ Primary: DLLs sit directly in soundengine/, not soundengine/fmod_js/
+            path.join(process.resourcesPath, 'soundengine', 'fmod.dll'),
+            path.join(process.resourcesPath, 'soundengine', 'fmodL.dll'),
+
+            // Fallbacks
             path.join(process.resourcesPath, 'soundengine', 'fmod_js', 'fmod.dll'),
             path.join(process.resourcesPath, 'soundengine', 'fmod_js', 'fmodL.dll'),
-
-            // Fallbacks in case the folder structure ever changes
-            path.join(process.resourcesPath, 'renderer', 'soundengine', 'fmod_js', 'fmod.dll'),
-            path.join(process.resourcesPath, 'renderer', 'soundengine', 'fmod_js', 'fmodL.dll'),
             path.join(process.resourcesPath, 'fmod.dll'),
             path.join(process.resourcesPath, 'fmodL.dll')
         ]
         : [
-            path.join(__dirname, 'fmod.dll'),
-            path.join(__dirname, 'fmodL.dll'),
+            // ✅ Dev: fmod.js lives in fmod_js/, DLLs are one level up
             path.join(__dirname, '..', 'fmod.dll'),
             path.join(__dirname, '..', 'fmodL.dll'),
-            path.join(process.cwd(), 'renderer', 'soundengine', 'fmod_js', 'fmod.dll'),
-            path.join(process.cwd(), 'renderer', 'soundengine', 'fmod_js', 'fmodL.dll')
+            path.join(__dirname, 'fmod.dll'),
+            path.join(__dirname, 'fmodL.dll'),
+            path.join(process.cwd(), 'renderer', 'soundengine', 'fmod.dll'),
+            path.join(process.cwd(), 'renderer', 'soundengine', 'fmodL.dll')
         ];
 
     for (const p of candidates)
