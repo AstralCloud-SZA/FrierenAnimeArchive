@@ -5,14 +5,18 @@
 //
 //  Strategy:
 //    extraResources is unreliable for large folder trees, so
-//    we use a postPackage hook to copy both ruby-runtime and
-//    the Rails repo directly into the packaged resources dir.
+//    we use a postPackage hook to copy ruby-runtime, the Rails
+//    repo, the FMOD sound engine, and audio files directly
+//    into the packaged resources dir. This guarantees files
+//    exist as real files on disk — no ASAR glob uncertainty.
 //
 //  Resources layout after packaging:
 //    resources/
 //      app.asar          ← Electron frontend (ASAR)
 //      ruby-runtime/     ← Portable Ruby 3.4 runtime
 //      rails-api/        ← Rails app + vendor/bundle gems
+//      soundengine/      ← FMOD DLLs + fmod_js loader
+//      audiofiles/       ← All audio assets (sfx + music)
 // ═══════════════════════════════════════════════════════════
 
 const path = require('path')
@@ -62,17 +66,10 @@ function copyDirForce(src, dst)
 
 module.exports = {
   packagerConfig: {
-    // Keep ASAR enabled but unpack native/FM0D-related assets so DLLs and
-    // audio files are available as real files at runtime.
-    //
-    // This tells Electron Packager / asar:
-    //   - unpack everything under renderer/soundengine (DLLs, JS, styles)
-    //   - unpack everything under audiofiles (all sound assets)
-    // into app.asar.unpacked instead of app.asar.
-    // Brace expansion for multiple dirs follows the asar CLI docs.[web:47][web:48]
-    asar: {
-      unpackDir: '{renderer/soundengine,audiofiles}'
-    },
+    // ✅ Plain ASAR — no unpackDir needed. FMOD DLLs and audio files
+    // are copied directly into resources/ via the postPackage hook below,
+    // so they never need to be inside (or unpacked from) app.asar.
+    asar: true,
 
     name: 'Frieren Anime Archive',
     icon: './Icon/f1'
@@ -119,6 +116,38 @@ module.exports = {
           `---\nBUNDLE_PATH: "vendor/bundle"\nBUNDLE_WITHOUT: "development:test"\nBUNDLE_FROZEN: "true"\n`
       )
       console.log('[hook] Wrote .bundle/config →', bundleConfigPath)
+
+      // ── 5. FMOD sound engine (DLLs + fmod_js loader) ─────
+      // ✅ NEW: Copy directly into resources/soundengine so fmod.js
+      //         can find fmod.dll / fmodL.dll at process.resourcesPath
+      //         without relying on asar.unpackDir glob matching.
+      const soundSrc = path.join(__dirname, 'renderer', 'soundengine')
+      const soundDst = path.join(resDir, 'soundengine')
+      if (fs.existsSync(soundSrc))
+      {
+        console.log('[hook] Copying soundengine →', soundDst)
+        copyDirForce(soundSrc, soundDst)
+      }
+      else
+      {
+        console.error('[hook] ✗ renderer/soundengine MISSING — FMOD will not work!')
+        process.exit(1)
+      }
+
+      // ── 6. Audio files (sfx + music) ──────────────────────
+      // ✅ NEW: Copy directly into resources/audiofiles for the same reason.
+      const audioSrc = path.join(__dirname, 'audiofiles')
+      const audioDst = path.join(resDir, 'audiofiles')
+      if (fs.existsSync(audioSrc))
+      {
+        console.log('[hook] Copying audiofiles →', audioDst)
+        copyDirForce(audioSrc, audioDst)
+      }
+      else
+      {
+        console.error('[hook] ✗ audiofiles MISSING — no sound will play!')
+        process.exit(1)
+      }
 
       console.log('[hook] Done. Resources:', fs.readdirSync(resDir))
     }
