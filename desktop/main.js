@@ -516,6 +516,13 @@ app.whenReady().then(() =>
         return true
     })
 
+
+    ipcMain.handle('sound:categories', () =>
+    {
+        if (!soundInitialized) return []
+        return soundengine.categories()
+    })
+
     createWindow()
     initSoundEngine()
 

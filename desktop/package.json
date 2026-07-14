@@ -1,6 +1,6 @@
 {
   "name": "frieren-archive",
-  "version": "3.07.14",
+  "version": "4.07.14",
   "description": "Frieren Archive - Anime News & Grimoire",
   "main": "main.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "publish": "electron-forge publish",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["electron", "anime", "news", "rails"],
+  "keywords": ["electron", "anime", "news", "rails","FMOD"],
   "author": "AstralCloud_SZA[Devak Gounden]",
   "license": "ISC",
   "type": "commonjs",
