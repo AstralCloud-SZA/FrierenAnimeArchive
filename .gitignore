@@ -69,7 +69,7 @@ Thumbs.db
 # .pak / .exe files. Committing them to LFS wastes quota fast.
 # Only the compressed make/ outputs (installer + zip) are kept.
 desktop/out/Frieren Anime Archive-win32-x64/
-
+desktop/out
 # ── Electron — Squirrel auto-generated metadata ───────────
 # RELEASES is regenerated on every build — not useful in VCS.
 desktop/out/make/squirrel.windows/RELEASES

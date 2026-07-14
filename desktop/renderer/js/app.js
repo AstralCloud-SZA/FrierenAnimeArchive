@@ -60,6 +60,13 @@ const animeReload     = $('anime-reload')
 const musicVolumeSlider = $('music-volume')
 const masterVolumeSlider = $('master-volume')
 const muteAllToggle = $('mute-all-toggle')
+const sfxVolumeSlider   = id('sfx-volume');
+const playToggleBtn     = id('audio-play-toggle');
+const stopBtn           = id('audio-stop-btn');
+const refreshDevicesBtn = id('audio-output-refresh');
+const outputDeviceSel   = id('audio-output-device');
+const nowPlayingBadge   = id('audio-now-playing');
+const categoriesBadge   = id('audio-categories-count');
 
 // ═══════════════════════════════════════════════════════════
 //  2. UI HELPERS
@@ -1242,6 +1249,84 @@ if (muteAllToggle)
         if (!muteAllToggle.checked) await ensureBackgroundMusic()
     })
 }
+
+// ── SFX Volume slider ──
+if (sfxVolumeSlider)
+{
+    sfxVolumeSlider.value = String(Math.round((getMusicVolume ? 1 : 1) * 100)); // keep default 100
+}
+sfxVolumeSlider?.addEventListener('input', () =>
+{
+    const v = Number(sfxVolumeSlider.value) / 100;
+    soundInvoke('setSfxVolume', v);
+    const badge = id('sfx-volume-value');
+    if (badge) badge.textContent = Math.round(v * 100) + '%';
+});
+
+// ── Play / Resume ──
+playToggleBtn?.addEventListener('click', async () =>
+{
+    playSfx('ui');
+    const playing = await soundInvoke('isMusicPlaying');
+    if (!playing) {
+        await ensureBackgroundMusic();
+    }
+    if (nowPlayingBadge) nowPlayingBadge.textContent = 'Playing';
+});
+
+// ── Stop ──
+stopBtn?.addEventListener('click', async () =>
+{
+    playSfx('ui');
+    await stopMusic();
+    if (nowPlayingBadge) nowPlayingBadge.textContent = 'Idle';
+});
+
+// ── Refresh Output Devices ──
+async function refreshOutputDevices()
+{
+    const devices = await soundInvoke('listOutputDevices');
+    if (!outputDeviceSel) return;
+    outputDeviceSel.innerHTML = '';
+    if (!Array.isArray(devices) || devices.length === 0)
+    {
+        const opt = document.createElement('option');
+        opt.value = '';
+        opt.textContent = 'Default device';
+        outputDeviceSel.appendChild(opt);
+        return;
+    }
+    devices.forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.textContent = d.name + (d.isDefault ? ' (default)' : '');
+        outputDeviceSel.appendChild(opt);
+    });
+}
+refreshDevicesBtn?.addEventListener('click', () =>
+{
+    playSfx('ui');
+    refreshOutputDevices();
+});
+outputDeviceSel?.addEventListener('change', () =>
+{
+    soundInvoke('setOutputDevice', Number(outputDeviceSel.value));
+});
+
+// ── Now Playing badge auto-sync ──
+setInterval(async () =>
+{
+    if (!nowPlayingBadge) return;
+    const playing = await soundInvoke('isMusicPlaying');
+    nowPlayingBadge.textContent = playing ? 'Playing' : 'Idle';
+}, 2000);
+
+// ── Populate categories + devices on boot ──
+refreshOutputDevices();
+soundInvoke('categories').then(cats =>
+{
+    if (categoriesBadge && Array.isArray(cats)) categoriesBadge.textContent = String(cats.length);
+});
 
 // ═══════════════════════════════════════════════════════════
 //  11. EVENT LISTENERS
