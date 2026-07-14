@@ -65,10 +65,7 @@ Thumbs.db
 *~
 
 # ── Electron — unpacked build output ─────────────────────
-# The raw unpacked folder contains hundreds of loose .dll /
-# .pak / .exe files. Committing them to LFS wastes quota fast.
-# Only the compressed make/ outputs (installer + zip) are kept.
-desktop/out/Frieren Anime Archive-win32-x64/
+#The full out folder is excluded
 desktop/out
 # ── Electron — Squirrel auto-generated metadata ───────────
 # RELEASES is regenerated on every build — not useful in VCS.

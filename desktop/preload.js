@@ -35,6 +35,24 @@ const { contextBridge, shell, ipcRenderer } = require('electron')
 const RAILS_BASE = 'http://localhost:3001'
 
 // ───────────────────────────────────────────────────────────
+// Safe IPC invoke wrapper
+// Prevents an unhandled main-process error from throwing inside
+// the renderer and breaking a whole click handler chain.
+// ───────────────────────────────────────────────────────────
+async function safeInvoke (channel, ...args)
+{
+    try
+    {
+        return await ipcRenderer.invoke(channel, ...args)
+    }
+    catch (err)
+    {
+        console.error('[preload] invoke failed:', channel, err.message)
+        return null
+    }
+}
+
+// ───────────────────────────────────────────────────────────
 // Existing Frieren API (window.api)
 // ───────────────────────────────────────────────────────────
 contextBridge.exposeInMainWorld('api',
@@ -119,7 +137,10 @@ contextBridge.exposeInMainWorld('api',
         //
         // Usage (DevTools console): window.api.openLog()
         //
-        openLog () { ipcRenderer.invoke('open-log') },
+        openLog ()
+        {
+            return safeInvoke('open-log')
+        },
 
         // ── Custom title bar — window controls ───────────────────
         // The frameless window has no OS title bar; these methods
@@ -163,6 +184,11 @@ contextBridge.exposeInMainWorld('api',
 // handlers registered in main.js, which in turn call your
 // koffi / FMOD soundengine module. Renderer never touches
 // native DLLs directly.
+//
+// NOTE: main.js must register a matching ipcMain.handle() for
+// every 'sound:*' channel below — including 'sound:categories',
+// which is easy to forget since it has no dedicated UI element
+// name to match against.
 // ═══════════════════════════════════════════════════════════
 
 contextBridge.exposeInMainWorld('sound',
@@ -173,13 +199,13 @@ contextBridge.exposeInMainWorld('sound',
         playSfx (category)
         {
             const cat = String(category || '').toLowerCase()
-            return ipcRenderer.invoke('sound:play-sfx', cat)
+            return safeInvoke('sound:play-sfx', cat)
         },
 
         // Play a random SFX from any loaded category.
         playAny ()
         {
-            return ipcRenderer.invoke('sound:play-any')
+            return safeInvoke('sound:play-any')
         },
 
         // ── Music helpers ───────────────────────────────────
@@ -188,63 +214,70 @@ contextBridge.exposeInMainWorld('sound',
         playMusic (name)
         {
             // If name is null/undefined, main.js can pick a default track.
-            return ipcRenderer.invoke('sound:play-music', name || null)
+            return safeInvoke('sound:play-music', name || null)
         },
 
         stopMusic ()
         {
-            return ipcRenderer.invoke('sound:stop-music')
+            return safeInvoke('sound:stop-music')
         },
 
         // ── Volume / mute ───────────────────────────────────
-        // @param {number} v — 0.0 … 1.0
+        // @param {number} v — 0.0 … 1.0 (NOT 0–100; divide slider
+        //                     values by 100 before calling these)
         //
         setMasterVolume (v)
         {
-            return ipcRenderer.invoke('sound:set-master-volume', Number(v))
+            return safeInvoke('sound:set-master-volume', Number(v))
         },
 
         setMusicVolume (v)
         {
-            return ipcRenderer.invoke('sound:set-music-volume', Number(v))
+            return safeInvoke('sound:set-music-volume', Number(v))
+        },
+
+        setSfxVolume (v)
+        {
+            return safeInvoke('sound:set-sfx-volume', Number(v))
         },
 
         setMuteAll (muted)
         {
-            return ipcRenderer.invoke('sound:set-mute-all', !!muted)
+            return safeInvoke('sound:set-mute-all', !!muted)
         },
 
         // ── Introspection ───────────────────────────────────
         // Returns array of track names (string[]).
         async listMusic ()
         {
-            return await ipcRenderer.invoke('sound:list-music')
+            const result = await safeInvoke('sound:list-music')
+            return Array.isArray(result) ? result : []
         },
 
         // Returns boolean indicating whether a music channel
         // is currently playing.
         async isMusicPlaying ()
         {
-            return await ipcRenderer.invoke('sound:is-music-playing')
+            const result = await safeInvoke('sound:is-music-playing')
+            return !!result
         },
 
-        setSfxVolume (v)
-        {
-            return ipcRenderer.invoke('sound:set-sfx-volume', Number(v))
-        },
-
+        // Returns array of { id, name, isDefault } output devices.
         async listOutputDevices ()
         {
-            return await ipcRenderer.invoke('sound:list-output-devices')
+            const result = await safeInvoke('sound:list-output-devices')
+            return Array.isArray(result) ? result : []
         },
 
         setOutputDevice (index)
         {
-            return ipcRenderer.invoke('sound:set-output-device', Number(index))
+            return safeInvoke('sound:set-output-device', Number(index))
         },
 
+        // Returns array of { category, count } loaded SFX groups.
         async categories ()
         {
-            return await ipcRenderer.invoke('sound:categories')
+            const result = await safeInvoke('sound:categories')
+            return Array.isArray(result) ? result : []
         }
     })
