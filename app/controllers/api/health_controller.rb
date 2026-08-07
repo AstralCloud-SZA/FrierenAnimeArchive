@@ -4,7 +4,7 @@ module Api
       render json: {
         status:    "ok",
         timestamp: Time.current.iso8601,
-        version:   "v0.1.0",
+        version:   "v2.3.0",
         rails:     Rails.version,
         env:       Rails.env,
         apis: {

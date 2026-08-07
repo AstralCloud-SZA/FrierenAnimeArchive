@@ -4,6 +4,9 @@
 #  JikanClient — Unofficial MyAnimeList API (Jikan v4)
 #  https://api.jikan.moe/v4
 #
+#  FALLBACK: Tenrai (https://api.tenrai.org/v1) — same Jikan v4
+#  schema, used automatically when Jikan is unreachable/down.
+#
 #  KEY ARCHITECTURE NOTE:
 #  Faraday base URL joining breaks when BASE_URL contains a
 #  path segment (/v4). Solution: pass full absolute URLs in
@@ -19,18 +22,14 @@ require "faraday/retry"
 require "cgi"
 
 class JikanClient
-  BASE_URL   = "https://api.jikan.moe/v4".freeze
-  USER_AGENT = "FrierenArchive/0.1.0".freeze
+  BASE_URL        = "https://api.jikan.moe/v4".freeze
+  FALLBACK_URL    = "https://api.tenrai.org/v1".freeze
+  USER_AGENT      = "FrierenArchive/0.1.0".freeze
 
   # Reset on class reload (important in Rails dev mode)
   @connection = nil
 
   # ── Persistent connection ──────────────────────────────
-  # Builds a reusable Faraday connection with:
-  #   - JSON accept header
-  #   - Windows SSL bypass (dev only)
-  #   - Auto-retry on rate limits (429) and server errors
-  #   - 15s timeout to handle slow Jikan responses
   def self.connection
     @connection ||= Faraday.new do |f|
       f.headers["User-Agent"] = USER_AGENT
@@ -42,137 +41,91 @@ class JikanClient
       f.options.timeout      = 15   # read timeout (seconds)
       f.options.open_timeout = 8    # connection timeout
 
-      # Retry on transient errors + Jikan rate limiting (429)
+      # Retry on transient errors + rate limiting (429) + 504
       f.request :retry, {
         max:                 3,
         interval:            1.0,
         interval_randomness: 0.5,
         backoff_factor:      2,
-        retry_statuses:      [ 429, 500, 503 ]
+        retry_statuses:      [ 429, 500, 503, 504 ]
       }
     end
   end
 
-  # ── ping ───────────────────────────────────────────────
-  # Quick liveness check used by HealthController.
-  # Hits /anime with a minimal query rather than /meta/status
-  # because /meta/status returns 404 on some Jikan nodes.
+  # ── request_with_fallback ──────────────────────────────
+  # Tries Jikan first using `path` (e.g. "/anime?q=dragon").
+  # On any failure (non-2xx or exception), retries the exact
+  # same path against Tenrai before giving up.
   #
-  # Returns: Boolean — true if Jikan is reachable
+  # Returns: parsed JSON Hash, or nil if both providers fail
+  def self.request_with_fallback(path)
+    resp = connection.get("#{BASE_URL}#{path}")
+    return JSON.parse(resp.body) if resp.success?
+
+    Rails.logger.warn "Jikan HTTP #{resp.status} for #{path} — trying Tenrai fallback"
+  rescue => e
+    Rails.logger.warn "Jikan request failed (#{e.message}) for #{path} — trying Tenrai fallback"
+  ensure
+    unless defined?(resp) && resp&.success?
+      begin
+        fallback_resp = connection.get("#{FALLBACK_URL}#{path}")
+        return JSON.parse(fallback_resp.body) if fallback_resp.success?
+
+        Rails.logger.error "Tenrai fallback HTTP #{fallback_resp.status} for #{path}"
+      rescue => e2
+        Rails.logger.error "Tenrai fallback failed (#{e2.message}) for #{path}"
+      end
+    end
+  end
+
+  # ── ping ───────────────────────────────────────────────
   def self.ping
-    resp = connection.get("#{BASE_URL}/anime?q=test&limit=1")
-    resp.success?
+    !!request_with_fallback("/anime?q=test&limit=1")
   rescue => e
     Rails.logger.error "Jikan ping failed: #{e.message}"
     false
   end
 
   # ── search_anime ───────────────────────────────────────────
-  # Params:
-  #   query  String  — search term e.g. "frieren"
-  #   limit  Integer — max results (1–25)
-  #   sfw    Boolean — safe-for-work filter (default false,
-  #                    toggled from Settings page)
-  #
-  # Example:
-  #   JikanClient.search_anime('frieren', 15, sfw: false)
   def self.search_anime(query, limit = 15, sfw: false)
     return [] if query.blank?
 
-    url = "#{BASE_URL}/anime?q=#{CGI.escape(query.strip)}&limit=#{limit}"
-    url += "&sfw=true" if sfw   # only append if enabled
+    path = "/anime?q=#{CGI.escape(query.strip)}&limit=#{limit}"
+    path += "&sfw=true" if sfw
 
-    resp = connection.get(url)
+    result = request_with_fallback(path)
+    return [] if result.nil?
 
-    unless resp.success?
-      Rails.logger.warn "Jikan search HTTP #{resp.status} for '#{query}'"
-      return []
-    end
-
-    data = JSON.parse(resp.body).dig("data") || []
-    Rails.logger.info "Jikan search '#{query}': #{data.size} results (sfw: #{sfw})"
+    data = result.dig("data") || []
+    Rails.logger.info "Anime search '#{query}': #{data.size} results (sfw: #{sfw})"
     data
   rescue => e
     Rails.logger.error "Jikan search_anime failed: #{e.message}"
     []
   end
 
-
   # ── anime_details ──────────────────────────────────────
-  # Fetch full details for a single anime by MAL ID.
-  # Used by the show endpoint /api/anime/:id
-  #
-  # Params:
-  #   mal_id  Integer|String — MyAnimeList anime ID
-  #
-  # Returns: Hash of anime data, {} on error/not found
-  #
-  # Example:
-  #   JikanClient.anime_details(52991)
-  #   # => { "mal_id" => 52991, "title" => "Sousou no Frieren",
-  #   #      "score" => 9.25, "episodes" => 28, ... }
   def self.anime_details(mal_id)
-    resp = connection.get("#{BASE_URL}/anime/#{mal_id}")
-
-    unless resp.success?
-      Rails.logger.warn "Jikan details HTTP #{resp.status} for ID #{mal_id}"
-      return {}
-    end
-
-    JSON.parse(resp.body).dig("data") || {}
+    result = request_with_fallback("/anime/#{mal_id}")
+    result&.dig("data") || {}
   rescue => e
     Rails.logger.error "Jikan anime_details failed: #{e.message}"
     {}
   end
 
   # ── top_anime ──────────────────────────────────────────
-  # Fetch the current MAL top-ranked anime list.
-  # Useful for a homepage widget or "Trending" section.
-  #
-  # Params:
-  #   limit  Integer — number of results (default 10, max 25)
-  #
-  # Returns: Array of anime hashes, [] on error
-  #
-  # Example:
-  #   JikanClient.top_anime(5)
-  #   # => [{ "rank" => 1, "title" => "Fullmetal Alchemist...", ... }]
   def self.top_anime(limit = 10)
-    resp = connection.get("#{BASE_URL}/top/anime?limit=#{limit}")
-
-    unless resp.success?
-      Rails.logger.warn "Jikan top_anime HTTP #{resp.status}"
-      return []
-    end
-
-    JSON.parse(resp.body).dig("data") || []
+    result = request_with_fallback("/top/anime?limit=#{limit}")
+    result&.dig("data") || []
   rescue => e
     Rails.logger.error "Jikan top_anime failed: #{e.message}"
     []
   end
 
   # ── seasonal ───────────────────────────────────────────
-  # Fetch anime airing in a specific season.
-  # Defaults to the current calendar season automatically.
-  #
-  # Params:
-  #   year    Integer — e.g. 2026
-  #   season  String  — "winter" | "spring" | "summer" | "fall"
-  #
-  # Returns: Array of anime hashes, [] on error
-  #
-  # Example:
-  #   JikanClient.seasonal         # current season
-  #   JikanClient.seasonal(2026, 'spring')
   def self.seasonal(year = Time.current.year, season = current_season)
-    resp = connection.get("#{BASE_URL}/seasons/#{year}/#{season}")
-
-    unless resp.success?
-      Rails.logger.warn "Jikan seasonal HTTP #{resp.status}"
-      return []
-    end
-
-    JSON.parse(resp.body).dig("data") || []
+    result = request_with_fallback("/seasons/#{year}/#{season}")
+    result&.dig("data") || []
   rescue => e
     Rails.logger.error "Jikan seasonal failed: #{e.message}"
     []
@@ -181,8 +134,6 @@ class JikanClient
   # ── Private helpers ───────────────────────────────────
   private
 
-  # Derives the current anime season from the calendar month.
-  # Winter: Jan–Mar | Spring: Apr–Jun | Summer: Jul–Sep | Fall: Oct–Dec
   def self.current_season
     case Time.current.month
     when 1..3  then "winter"

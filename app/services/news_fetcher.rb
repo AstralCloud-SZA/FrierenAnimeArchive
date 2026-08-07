@@ -121,11 +121,7 @@ class NewsFetcher
   end
 
   def self.clean_html(html)
-    ActionController::Base.helpers
-                          .strip_tags(html)
-                          .gsub(/\s+/, " ")
-                          .strip
-                          .truncate(300)
+    ActionController::Base.helpers.strip_tags(html).gsub(/\s+/, " ").strip.truncate(300)
   rescue
     html.to_s.truncate(300)
   end
