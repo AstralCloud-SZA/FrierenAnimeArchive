@@ -200,7 +200,7 @@ function startRails()
 
     railsProcess = spawn(
         rubyExe,
-        ['bin/rails', 'server', '-p', '3001', '-e', 'production'],
+        ['bin/rails', 'server', '-p', '4376', '-e', 'production'],
         {
             cwd: railsDir,
             windowsHide: true,
@@ -260,7 +260,7 @@ function startRails()
 // ═══════════════════════════════════════════════════════════
 function waitForRails(callback, retries = 60)
 {
-    http.get('http://localhost:3001/api/health', res =>
+    http.get('http://localhost:4376/api/health', res =>
     {
         if (res.statusCode === 200)
         {
@@ -308,7 +308,7 @@ function setupSessionHooks()
                     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                     "font-src 'self' https://fonts.gstatic.com data:",
                     "img-src * data: blob:",
-                    "connect-src 'self' http://localhost:3001 https:",
+                    "connect-src 'self' http://localhost:4376 https:",
                     "frame-src *",
                     "child-src *",
                     "media-src *"
@@ -364,8 +364,8 @@ function createWindow()
     })
 
     mainWindow.loadFile('loading.html')
-
-    if (isDev) mainWindow.webContents.openDevTools({ mode: 'detach' })
+    //if (isDev)
+     mainWindow.webContents.openDevTools({ mode: 'detach' })
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) =>
     {
@@ -526,7 +526,7 @@ app.whenReady().then(() =>
     createWindow()
     initSoundEngine()
 
-    freePort(3001).then(() =>
+    freePort(4376).then(() =>
     {
         startRails()
         waitForRails(() => mainWindow?.loadFile('index.html'))

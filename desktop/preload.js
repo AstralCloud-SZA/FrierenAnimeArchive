@@ -32,7 +32,7 @@
 
 const { contextBridge, shell, ipcRenderer } = require('electron')
 
-const RAILS_BASE = 'http://localhost:3001'
+const RAILS_BASE = 'http://localhost:4376'
 
 // ───────────────────────────────────────────────────────────
 // Safe IPC invoke wrapper

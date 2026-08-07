@@ -60,13 +60,13 @@ const animeReload     = $('anime-reload')
 const musicVolumeSlider = $('music-volume')
 const masterVolumeSlider = $('master-volume')
 const muteAllToggle = $('mute-all-toggle')
-const sfxVolumeSlider   = id('sfx-volume');
-const playToggleBtn     = id('audio-play-toggle');
-const stopBtn           = id('audio-stop-btn');
-const refreshDevicesBtn = id('audio-output-refresh');
-const outputDeviceSel   = id('audio-output-device');
-const nowPlayingBadge   = id('audio-now-playing');
-const categoriesBadge   = id('audio-categories-count');
+const sfxVolumeSlider   = $('sfx-volume')
+const playToggleBtn     = $('audio-play-toggle')
+const stopBtn           = $('audio-stop-btn')
+const refreshDevicesBtn = $('audio-output-refresh')
+const outputDeviceSel   = $('audio-output-device')
+const nowPlayingBadge   = $('audio-now-playing')
+const categoriesBadge   = $('audio-categories-count')
 
 // ═══════════════════════════════════════════════════════════
 //  2. UI HELPERS
