@@ -1,27 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- CSP should be the first meta in <head> -->
-  <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self' 'unsafe-inline';
-                 img-src * data: blob:;
-                 media-src *;
-                 script-src 'self' 'unsafe-inline';
-                 style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-                 font-src 'self' https://fonts.gstatic.com data:;
-                 connect-src *;">
-
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+          http-equiv="Content-Security-Policy"
+          content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline';
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com data:;
+      img-src 'self' data: blob: http: https:;
+      connect-src 'self' http://127.0.0.1:4376 https:;
+      media-src 'self' data: blob: http: https:;
+    "
+  >
+
   <title>Frieren Archive</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link
+          href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@400;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
+          rel="stylesheet"
+  >
+
   <link rel="stylesheet" href="renderer/styles/main.css">
 </head>
-<body>
 
+<body>
 <!-- ═══ CUSTOM TITLE BAR ═══ -->
 <div class="titlebar" id="titlebar">
   <div class="titlebar-drag">
@@ -29,6 +38,7 @@
     <span class="titlebar-title">Frieren Archive</span>
     <span class="titlebar-sub">Grimoire of Anime</span>
   </div>
+
   <div class="titlebar-controls">
     <button class="tb-btn" id="tb-min" type="button" title="Minimise">&#8722;</button>
     <button class="tb-btn" id="tb-max" type="button" title="Maximise">&#9633;</button>
@@ -36,15 +46,14 @@
   </div>
 </div>
 
-<canvas id="snow-canvas"
-        style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;"></canvas>
+<canvas id="snow-canvas"></canvas>
 
 <div class="app-shell">
-
   <!-- ═══ SIDEBAR ═══ -->
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="brand-orb"></div>
+
       <div class="brand-text">
         <strong>Frieren Archive</strong>
         <span>Grimoire of Anime</span>
@@ -52,36 +61,43 @@
     </div>
 
     <div class="nav-section-label">Navigate</div>
-    <nav class="sidebar-nav">
-      <div class="nav-item active" data-section="news">
+
+    <nav class="sidebar-nav" aria-label="Primary navigation">
+      <div class="nav-item active" data-section="news" role="button" tabindex="0">
         <div class="nav-icon">📜</div>
         <span>News</span>
       </div>
-      <div class="nav-item" data-section="mal">
+
+      <div class="nav-item" data-section="mal" role="button" tabindex="0">
         <div class="nav-icon">📖</div>
         <span>MyAnimeList</span>
       </div>
-      <div class="nav-item" data-section="search">
+
+      <div class="nav-item" data-section="search" role="button" tabindex="0">
         <div class="nav-icon">🔮</div>
         <span>Quick Search</span>
       </div>
-      <div class="nav-item" data-section="favorites">
+
+      <div class="nav-item" data-section="favorites" role="button" tabindex="0">
         <div class="nav-icon">⭐</div>
         <span>Favourites</span>
       </div>
-      <div class="nav-item" data-section="anime">
+
+      <div class="nav-item" data-section="anime" role="button" tabindex="0">
         <div class="nav-icon">🎬</div>
         <span>Watch Anime</span>
       </div>
-      <div class="nav-item" data-section="manga">
+
+      <div class="nav-item" data-section="manga" role="button" tabindex="0">
         <div class="nav-icon">📚</div>
         <span>Read Manga</span>
       </div>
     </nav>
 
     <div class="nav-section-label">System</div>
-    <nav class="sidebar-nav" style="flex:0;">
-      <div class="nav-item" data-section="settings">
+
+    <nav class="sidebar-nav sidebar-nav-system" aria-label="System navigation">
+      <div class="nav-item" data-section="settings" role="button" tabindex="0">
         <div class="nav-icon">⚙️</div>
         <span>Settings</span>
       </div>
@@ -102,10 +118,12 @@
 
     <div class="header-search">
       <span class="header-search-icon">🔮</span>
+
       <input
               type="text"
               id="global-search"
               placeholder="Search the world… (DuckDuckGo) · Ctrl+K"
+              autocomplete="off"
       >
     </div>
 
@@ -114,19 +132,24 @@
         <div class="status-dot" id="api-dot"></div>
         <span id="api-status">Connecting…</span>
       </div>
-      <button class="header-btn" id="btn-health" type="button">Check Health</button>
-      <button class="header-btn primary" id="btn-news" type="button">Load News</button>
+
+      <button class="header-btn" id="btn-health" type="button">
+        Check Health
+      </button>
+
+      <button class="header-btn primary" id="btn-news" type="button">
+        Load News
+      </button>
     </div>
   </header>
 
   <!-- ═══ MAIN ═══ -->
   <main class="main">
-
     <!-- ── NEWS ── -->
     <section class="section visible" id="section-news">
-
       <div class="glass-card">
         <div class="card-heading">📜 Latest Anime News</div>
+
         <div class="card-body">
           Live from ANN via Rails API · Click <strong>Load News</strong> to fetch.
         </div>
@@ -135,19 +158,27 @@
       <div class="news-list" id="news-list">
         <div class="empty-state">
           <div class="empty-icon">🌿</div>
-          <p>No news fetched yet.<br>Click <strong>Load News</strong> to begin.</p>
+
+          <p>
+            No news fetched yet.<br>
+            Click <strong>Load News</strong> to begin.
+          </p>
+
           <em>"Even a thousand years of travelling doesn't erase the joy of discovering something new."</em>
         </div>
       </div>
 
-      <div id="news-reader" style="display:none;">
+      <div id="news-reader" hidden>
         <div class="glass-card">
-          <div class="card-heading"
-               style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-              <span id="news-reader-back"
-                    style="cursor:pointer;opacity:0.65;font-size:14px;letter-spacing:0.1em;transition:opacity 0.2s;"
-                    onmouseover="this.style.opacity=1"
-                    onmouseout="this.style.opacity=0.65">← Back to News</span>
+          <div class="card-heading news-reader-heading">
+            <button
+                    id="news-reader-back"
+                    class="news-reader-back"
+                    type="button"
+            >
+              ← Back to News
+            </button>
+
             <span id="news-reader-title">Article</span>
           </div>
         </div>
@@ -158,18 +189,16 @@
                 src="about:blank"
                 partition="persist:news"
                 useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                style="width:100%;height:calc(100vh - 240px);min-height:500px;margin-top:12px;border:1px solid var(--border);border-radius:12px;background:#020408;"
                 allowpopups>
         </webview>
       </div>
-
     </section>
 
     <!-- ── MYANIMELIST ── -->
     <section class="section" id="section-mal">
-
       <div class="glass-card">
         <div class="card-heading">📖 MyAnimeList · Jikan Search</div>
+
         <div class="card-body">
           Search any anime title via the Jikan v4 API · click a result to view details.
           SFW filter toggled in <strong>Settings</strong>.
@@ -178,75 +207,98 @@
 
       <div class="search-bar-large">
         <span class="search-ico">📖</span>
+
         <input
                 type="text"
                 id="mal-input"
                 placeholder="Search anime titles… e.g. Frieren, Bleach, Berserk"
+                autocomplete="off"
         >
       </div>
 
-      <button class="search-btn" id="mal-btn" type="button">Search Anime</button>
+      <button class="search-btn" id="mal-btn" type="button">
+        Search Anime
+      </button>
 
-      <div id="mal-output" style="margin-top:20px;"></div>
+      <div id="mal-output" class="search-output"></div>
 
       <div class="empty-state" id="mal-empty">
         <div class="empty-icon">📖</div>
+
         <p>Search for any anime above to begin exploring.</p>
+
         <em>"Knowledge gained through long years of study is never truly lost."</em>
       </div>
-
     </section>
 
     <!-- ── QUICK SEARCH ── -->
     <section class="section" id="section-search">
-
       <div class="glass-card">
         <div class="card-heading">🔮 Quick Search · DuckDuckGo</div>
+
         <div class="card-body">
           Full in-app browser · search anything freely · no restrictions.
         </div>
       </div>
 
       <div class="ddg-toolbar">
-        <div class="search-bar-large" style="flex:1;margin:0;">
+        <div class="search-bar-large search-bar-toolbar">
           <span class="search-ico">🔮</span>
+
           <input
                   type="text"
                   id="ddg-input"
                   placeholder="Ask anything… e.g. Frieren season 2 release date"
+                  autocomplete="off"
           >
         </div>
-        <button class="search-btn" id="ddg-btn" type="button" style="margin:0;white-space:nowrap;">Search</button>
-        <button class="header-btn" id="ddg-back" type="button" title="Back">←</button>
-        <button class="header-btn" id="ddg-forward" type="button" title="Forward">→</button>
-        <button class="header-btn" id="ddg-reload" type="button" title="Reload">↺</button>
+
+        <button class="search-btn search-btn-toolbar" id="ddg-btn" type="button">
+          Search
+        </button>
+
+        <button class="header-btn" id="ddg-back" type="button" title="Back">
+          ←
+        </button>
+
+        <button class="header-btn" id="ddg-forward" type="button" title="Forward">
+          →
+        </button>
+
+        <button class="header-btn" id="ddg-reload" type="button" title="Reload">
+          ↺
+        </button>
       </div>
 
       <webview
               class="webview"
               id="ddg-webview"
-              data-src="https://duckduckgo.com/?kae=d&k1=-1&kp=-2"
               src="about:blank"
+              data-src="https://duckduckgo.com/?kae=d&k1=-1&kp=-2"
               partition="persist:browser"
               useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-              style="width:100%;height:calc(100vh - 280px);min-height:420px;margin-top:12px;border:1px solid var(--border);border-radius:12px;background:#020408;"
-              allowpopups
-              disablewebsecurity>
+              allowpopups>
       </webview>
-
     </section>
 
     <!-- ── FAVOURITES ── -->
     <section class="section" id="section-favorites">
-
       <div class="glass-card">
         <div class="card-heading">⭐ Favourites</div>
-        <div class="card-body">Your saved anime and pinned articles · stored locally.</div>
+
+        <div class="card-body">
+          Your saved anime and pinned articles · stored locally.
+        </div>
       </div>
 
       <div class="fav-tabs">
-        <button class="fav-tab active" data-tab="fav-anime" type="button">📖 Anime</button>
-        <button class="fav-tab" data-tab="fav-articles" type="button">📜 Articles</button>
+        <button class="fav-tab active" data-tab="fav-anime" type="button">
+          📖 Anime
+        </button>
+
+        <button class="fav-tab" data-tab="fav-articles" type="button">
+          📜 Articles
+        </button>
       </div>
 
       <div id="fav-anime" class="fav-panel">
@@ -255,53 +307,61 @@
           <p>No saved anime yet.</p>
           <em>"Some stories are worth keeping forever."</em>
         </div>
+
         <div class="news-list" id="fav-anime-list"></div>
       </div>
 
-      <div id="fav-articles" class="fav-panel" style="display:none;">
+      <div id="fav-articles" class="fav-panel" hidden>
         <div class="empty-state" id="fav-articles-empty">
           <div class="empty-icon">📜</div>
           <p>No pinned articles yet.</p>
           <em>"Even a fleeting moment can be worth remembering."</em>
         </div>
+
         <div class="news-list" id="fav-articles-list"></div>
       </div>
-
     </section>
 
     <!-- ── WATCH ANIME ── -->
     <section class="section" id="section-anime">
-
       <div class="glass-card">
-        <div class="card-heading">🎬 Watch Anime &mdash; 9Anime</div>
-        <div class="card-body">Stream anime directly. Your session is saved between launches.</div>
+        <div class="card-heading">🎬 Watch Anime — 9Anime</div>
+
+        <div class="card-body">
+          Stream anime directly. Your session is saved between launches.
+        </div>
       </div>
 
       <div class="ddg-toolbar">
-        <button class="header-btn" id="anime-back" type="button" title="Back">&#8592;</button>
-        <button class="header-btn" id="anime-forward" type="button" title="Forward">&#8594;</button>
-        <button class="header-btn" id="anime-reload" type="button" title="Reload">&#8635;</button>
+        <button class="header-btn" id="anime-back" type="button" title="Back">
+          ←
+        </button>
+
+        <button class="header-btn" id="anime-forward" type="button" title="Forward">
+          →
+        </button>
+
+        <button class="header-btn" id="anime-reload" type="button" title="Reload">
+          ↺
+        </button>
       </div>
 
       <webview
-              class="webview"
+              class="webview webview-anime"
               id="anime-webview"
-              data-src="https://9anime.org.lv"
               src="about:blank"
+              data-src="https://9anime.org.lv"
               partition="persist:anime"
               useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-              style="width:100%;height:calc(100vh - 200px);min-height:500px;margin-top:12px;border:1px solid var(--border);border-radius:12px;background:#c6d3e8;"
-              allowpopups
-              disablewebsecurity>
+              allowpopups>
       </webview>
-
     </section>
 
     <!-- ── READ MANGA ── -->
     <section class="section" id="section-manga">
-
       <div class="glass-card">
         <div class="card-heading">📚 Read Manga — MangaDex</div>
+
         <div class="card-body">
           Search and read manga directly, powered by your Rails API.
         </div>
@@ -309,46 +369,59 @@
 
       <div class="search-bar-large">
         <span class="search-ico">📚</span>
-        <input type="text" id="manga-input" placeholder="Search manga… e.g. Frieren">
+
+        <input
+                type="text"
+                id="manga-input"
+                placeholder="Search manga… e.g. Frieren"
+                autocomplete="off"
+        >
       </div>
 
-      <button class="search-btn" id="manga-btn" type="button">Find Manga</button>
+      <button class="search-btn" id="manga-btn" type="button">
+        Find Manga
+      </button>
 
       <div class="ddg-toolbar">
-        <button class="header-btn" id="manga-back" type="button" title="Back">&#8592;</button>
-        <button class="header-btn" id="manga-forward" type="button" title="Forward">&#8594;</button>
-        <button class="header-btn" id="manga-reload" type="button" title="Reload">&#8635;</button>
+        <button class="header-btn" id="manga-back" type="button" title="Back">
+          ←
+        </button>
+
+        <button class="header-btn" id="manga-forward" type="button" title="Forward">
+          →
+        </button>
+
+        <button class="header-btn" id="manga-reload" type="button" title="Reload">
+          ↺
+        </button>
       </div>
 
       <webview
-              class="webview"
+              class="webview webview-manga"
               id="manga-webview"
               src="about:blank"
               partition="persist:manga"
               useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-              style="width:100%;height:calc(100vh - 420px);min-height:380px;margin-top:12px;border:1px solid var(--border);border-radius:12px;background:#020408;"
-              allowpopups
-              disablewebsecurity>
+              allowpopups>
       </webview>
 
-      <div class="card-heading" style="margin-top:20px;">🕘 Recently Read</div>
+      <div class="card-heading recent-heading">🕘 Recently Read</div>
       <div class="news-list" id="manga-history-list"></div>
-
     </section>
 
     <!-- ── SETTINGS ── -->
     <section class="section" id="section-settings">
-
       <div class="glass-card">
         <div class="card-heading">⚙️ Settings</div>
-        <div class="card-body">
 
+        <div class="card-body">
           <div class="setting-row">
             <div>
               <div class="setting-label">Rails API</div>
-              <div class="setting-desc">http://localhost:4376</div>
+              <div class="setting-desc">http://127.0.0.1:4376</div>
             </div>
-            <span class="badge" id="settings-api-badge">Connected</span>
+
+            <span class="badge" id="settings-api-badge">Checking…</span>
           </div>
 
           <div class="setting-row">
@@ -356,7 +429,8 @@
               <div class="setting-label">FMOD Sound Engine</div>
               <div class="setting-desc">Native audio backend via Electron + Koffi</div>
             </div>
-            <span class="badge" id="audio-engine-badge">Active</span>
+
+            <span class="badge" id="audio-engine-badge">Checking…</span>
           </div>
 
           <div class="settings-subheading">Audio Controls</div>
@@ -366,6 +440,7 @@
               <div class="setting-label">Mute All</div>
               <div class="setting-desc">Silence music and sound effects instantly</div>
             </div>
+
             <label class="toggle" title="Mute all audio">
               <input type="checkbox" id="mute-all-toggle">
               <span class="toggle-slider"></span>
@@ -373,13 +448,13 @@
           </div>
 
           <div class="audio-grid">
-
             <div class="setting-row">
               <div class="setting-stack">
                 <div>
                   <div class="setting-label">Master Volume</div>
                   <div class="setting-desc">Overall app output level</div>
                 </div>
+
                 <div class="setting-control-row">
                   <input
                           class="audio-range"
@@ -390,6 +465,7 @@
                           step="1"
                           value="100"
                   >
+
                   <span class="badge" id="master-volume-value">100%</span>
                 </div>
               </div>
@@ -401,6 +477,7 @@
                   <div class="setting-label">Music Volume</div>
                   <div class="setting-desc">Background soundtrack level</div>
                 </div>
+
                 <div class="setting-control-row">
                   <input
                           class="audio-range"
@@ -411,6 +488,7 @@
                           step="1"
                           value="55"
                   >
+
                   <span class="badge" id="music-volume-value">55%</span>
                 </div>
               </div>
@@ -422,6 +500,7 @@
                   <div class="setting-label">SFX Volume</div>
                   <div class="setting-desc">UI clicks, navigation, feedback sounds</div>
                 </div>
+
                 <div class="setting-control-row">
                   <input
                           class="audio-range"
@@ -432,6 +511,7 @@
                           step="1"
                           value="100"
                   >
+
                   <span class="badge" id="sfx-volume-value">100%</span>
                 </div>
               </div>
@@ -443,32 +523,56 @@
                   <div class="setting-label">Now Playing</div>
                   <div class="setting-desc">Current music playback state</div>
                 </div>
+
                 <div class="setting-control-row">
                   <span class="badge" id="audio-now-playing">Idle</span>
-                  <button class="header-btn" id="audio-play-toggle" type="button">Play / Resume</button>
-                  <button class="header-btn" id="audio-stop-btn" type="button">Stop</button>
+
+                  <button
+                          class="header-btn"
+                          id="audio-play-toggle"
+                          type="button"
+                  >
+                    Play / Resume
+                  </button>
+
+                  <button
+                          class="header-btn"
+                          id="audio-stop-btn"
+                          type="button"
+                  >
+                    Stop
+                  </button>
                 </div>
               </div>
             </div>
-
           </div>
 
           <div class="settings-subheading">Output</div>
 
           <div class="setting-row">
-            <div class="setting-stack" style="width:100%;">
+            <div class="setting-stack setting-stack-full">
               <div>
                 <div class="setting-label">Output Device</div>
                 <div class="setting-desc">Choose where FMOD sends sound</div>
               </div>
+
               <div class="setting-control-row">
                 <select id="audio-output-device" class="audio-select">
                   <option value="">Default device</option>
                 </select>
-                <button class="header-btn" id="audio-output-refresh" type="button">Refresh Devices</button>
+
+                <button
+                        class="header-btn"
+                        id="audio-output-refresh"
+                        type="button"
+                >
+                  Refresh Devices
+                </button>
               </div>
+
               <div class="audio-note">
-                Refresh if you plug in headphones, switch audio devices, or change speakers while the app is open.
+                Refresh if you plug in headphones, switch audio devices,
+                or change speakers while the app is open.
               </div>
             </div>
           </div>
@@ -478,6 +582,7 @@
               <div class="setting-label">Loaded SFX Categories</div>
               <div class="setting-desc">Detected from your local audiofiles folder</div>
             </div>
+
             <span class="badge" id="audio-categories-count">0</span>
           </div>
 
@@ -488,6 +593,7 @@
               <div class="setting-label">SFW Filter</div>
               <div class="setting-desc">Hide adult content from MyAnimeList search</div>
             </div>
+
             <label class="toggle" title="Toggle safe-for-work filter">
               <input type="checkbox" id="sfw-toggle">
               <span class="toggle-slider"></span>
@@ -501,6 +607,7 @@
               <div class="setting-label">Theme</div>
               <div class="setting-desc">Celestial Archive · Gold-White</div>
             </div>
+
             <span class="badge">Active</span>
           </div>
 
@@ -509,6 +616,7 @@
               <div class="setting-label">Magic Effects</div>
               <div class="setting-desc">Blumen petals · rune rings · sparkles</div>
             </div>
+
             <span class="badge">Active</span>
           </div>
 
@@ -519,21 +627,19 @@
               <div class="setting-label">MyAnimeList OAuth</div>
               <div class="setting-desc">Account linking · coming soon</div>
             </div>
+
             <span class="badge">Pending</span>
           </div>
 
           <div class="setting-row">
             <div>
               <div class="setting-label">Version</div>
-              <div class="setting-desc">Frieren Archive v2.1.7</div>
+              <div class="setting-desc">Frieren Archive v2.26.8</div>
             </div>
           </div>
-
         </div>
       </div>
-
     </section>
-
   </main>
 </div>
 
@@ -541,6 +647,5 @@
 <script src="renderer/js/nav.js"></script>
 <script src="renderer/js/app.js"></script>
 <script src="renderer/js/manga.js"></script>
-
 </body>
 </html>

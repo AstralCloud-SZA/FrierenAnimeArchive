@@ -785,6 +785,45 @@ html, body
 
 
 
+.webview
+{
+    display: block;
+    width: 100%;
+    height: min(70vh, 850px);
+    min-height: 460px;
+    margin-top: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-deep);
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+#news-webview
+{
+    height: min(72vh, 900px);
+    min-height: 500px;
+}
+
+#ddg-webview
+{
+    height: min(68vh, 820px);
+    min-height: 420px;
+}
+
+#anime-webview
+{
+    height: min(72vh, 900px);
+    min-height: 500px;
+    background: #c6d3e8;
+}
+
+#manga-webview
+{
+    height: min(58vh, 700px);
+    min-height: 380px;
+}
+
 /* ── Favourites tabs ──────────────────────── */
 .fav-tabs {
     display: flex;
@@ -797,7 +836,7 @@ html, body
     border: 1px solid var(--border);
     border-radius: 999px;
     color: var(--text-mid);
-    font-family: var(--font-title);
+    font-family: var(--font-title), monospace;
     font-size: 13px;
     letter-spacing: 0.12em;
     padding: 7px 20px;

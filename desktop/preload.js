@@ -1,45 +1,19 @@
 // preload.js
 // ═══════════════════════════════════════════════════════════
 //  Frieren Archive — Electron Preload Script
-//
-//  Purpose:
-//    Acts as the secure bridge between the sandboxed renderer
-//    process (app.js / nav.js) and privileged Electron/Node
-//    APIs. Only what is explicitly listed here is accessible
-//    to renderer code via window.api / window.sound — nothing
-//    else leaks.
-//
-//  Architecture:
-//    ┌─────────────┐   window.api.*   ┌──────────────┐
-//    │  Renderer   │ ←─────────────→ │   Preload    │
-//    │  (app.js)   │                 │ (this file)  │
-//    └─────────────┘                 └──────┬───────┘
-//                                           │ ipcRenderer
-//                                    ┌──────▼───────┐
-//                                    │  Main Process │
-//                                    │  (main.js)   │
-//                                    └──────────────┘
-//
-//  Security model:
-//    - contextIsolation: true  — renderer JS runs in a separate
-//      V8 context; it cannot access Node globals or require().
-//    - nodeIntegration:  false — no Node.js APIs in renderer.
-//    - sandbox:          false — required so that fetch() works
-//      inside this preload script (full sandbox blocks fetch).
-//    - Only string/plain-object data crosses the bridge;
-//      no functions or Node objects are ever forwarded.
 // ═══════════════════════════════════════════════════════════
 
 const { contextBridge, shell, ipcRenderer } = require('electron')
 
-const RAILS_BASE = 'http://localhost:4376'
+// Keep this identical to main.js:
+// Rails command: bin/rails server -p 4376
+const RAILS_BASE = 'http://127.0.0.1:4376'
+const API_TIMEOUT_MS = 10_000
 
-// ───────────────────────────────────────────────────────────
-// Safe IPC invoke wrapper
-// Prevents an unhandled main-process error from throwing inside
-// the renderer and breaking a whole click handler chain.
-// ───────────────────────────────────────────────────────────
-async function safeInvoke (channel, ...args)
+// ═══════════════════════════════════════════════════════════
+//  Generic IPC helper
+// ═══════════════════════════════════════════════════════════
+async function safeInvoke(channel, ...args)
 {
     try
     {
@@ -47,237 +21,330 @@ async function safeInvoke (channel, ...args)
     }
     catch (err)
     {
-        console.error('[preload] invoke failed:', channel, err.message)
+        console.error('[preload] IPC invoke failed:', channel, err)
         return null
     }
 }
 
-// ───────────────────────────────────────────────────────────
-// Existing Frieren API (window.api)
-// ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════
+//  Rails API helpers
+// ═══════════════════════════════════════════════════════════
+async function parseResponse(response)
+{
+    const raw = await response.text()
+
+    if (!raw || !raw.trim())
+    {
+        return {
+            data: null,
+            raw: ''
+        }
+    }
+
+    try
+    {
+        return {
+            data: JSON.parse(raw),
+            raw
+        }
+    }
+    catch
+    {
+        return {
+            data: null,
+            raw
+        }
+    }
+}
+
+function errorMessageFromResponse(status, data, raw)
+{
+    if (data && typeof data === 'object')
+    {
+        if (typeof data.error === 'string') return data.error
+
+        if (Array.isArray(data.errors))
+        {
+            return data.errors.join(', ')
+        }
+
+        if (data.errors && typeof data.errors === 'object')
+        {
+            return Object.entries(data.errors)
+                .map(([field, messages]) =>
+                {
+                    const text = Array.isArray(messages) ? messages.join(', ') : String(messages)
+                    return `${field}: ${text}`
+                }).join(' | ')
+        }
+
+        if (typeof data.message === 'string') return data.message
+    }
+
+    if (raw)
+    {
+        return raw.length > 500 ? `${raw.slice(0, 500)}…` : raw
+    }
+
+    return `HTTP ${status}`
+}
+
+async function apiRequest(path, options = {})
+{
+    const controller = new AbortController()
+
+    const timer = setTimeout(() => {controller.abort()}, API_TIMEOUT_MS)
+
+    try
+    {
+        const response = await fetch(`${RAILS_BASE}${path}`, {
+            ...options,
+            signal: controller.signal,
+            headers: {Accept: 'application/json', ...(options.headers || {})}
+        })
+
+        const { data, raw } = await parseResponse(response)
+
+        const result = {
+            ok: response.ok,
+            status: response.status,
+            data,
+            error: response.ok ? null : errorMessageFromResponse(response.status, data, raw)
+        }
+
+        if (!result.ok)
+        {
+            console.warn('[preload] API response failed:', {path, status: result.status, error: result.error})
+        }
+
+        return result
+    }
+    catch (err)
+    {
+        const timedOut = err?.name === 'AbortError'
+
+        const error = timedOut ? `Request timed out after ${API_TIMEOUT_MS / 1000}s` : (err?.message || String(err))
+
+        console.error('[preload] API request failed:', {path, error})
+
+        return {
+            ok: false,
+            status: 0,
+            data: null,
+            error
+        }
+    }
+    finally
+    {
+        clearTimeout(timer)
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  Renderer API bridge — window.api
+// ═══════════════════════════════════════════════════════════
 contextBridge.exposeInMainWorld('api',
     {
-        // ── Rails API — GET ──────────────────────────────────────
-        // Performs a GET request to the local Rails API server.
-        // Used throughout app.js for news, health checks, MAL
-        // searches, and article content fetches.
-        //
-        // @param  {string} path  — e.g. '/api/v1/news'
-        // @return {Promise<{ ok: boolean, data: any, error?: string }>}
-        //
-        async get (path)
+        get(path)
         {
+            return apiRequest(path)
+        },
+
+        post(path, body = {})
+        {
+            return apiRequest(path, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            })
+        },
+
+        put(path, body = {})
+        {
+            return apiRequest(path, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            })
+        },
+
+        patch(path, body = {})
+        {
+            return apiRequest(path, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            })
+        },
+
+        delete(path)
+        {
+            return apiRequest(path, {
+                method: 'DELETE'
+            })
+        },
+
+        openExternal(url)
+        {
+            if (!url || typeof url !== 'string') return Promise.resolve(false)
+
             try
             {
-                const resp = await fetch(`${RAILS_BASE}${path}`)
-                const data = await resp.json()
-                return { ok: resp.ok, data }
+                return shell.openExternal(url)
             }
             catch (err)
             {
-                console.error('[preload] GET failed:', path, err.message)
-                return { ok: false, data: null, error: err.message }
+                console.error('[preload] openExternal failed:', err)
+                return Promise.resolve(false)
             }
         },
 
-        // ── Rails API — POST ─────────────────────────────────────
-        // Performs a POST request to the local Rails API server.
-        // Currently used for news refresh (wipes DB + re-fetches
-        // from RSS feeds).
-        //
-        // @param  {string} path  — e.g. '/api/v1/news/refresh'
-        // @param  {object} body  — JSON-serialisable payload
-        // @return {Promise<{ ok: boolean, data: any, error?: string }>}
-        //
-        async post (path, body = {})
-        {
-            try
-            {
-                const resp = await fetch(`${RAILS_BASE}${path}`, {
-                    method:  'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body:    JSON.stringify(body)
-                })
-                const data = await resp.json()
-                return { ok: resp.ok, data }
-            }
-            catch (err)
-            {
-                console.error('[preload] POST failed:', path, err.message)
-                return { ok: false, data: null, error: err.message }
-            }
-        },
-
-        // ── Open URL in OS default browser ───────────────────────
-        // Hands a URL to the operating system's default browser.
-        // Used for: YouTube trailers, external article links, and
-        // any URL that must not load inside the Electron window.
-        // Silently no-ops on null/undefined input.
-        //
-        // @param {string} url — fully-qualified URL
-        //
-        openExternal (url)
-        {
-            if (!url) return
-            try
-            {
-                shell.openExternal(url)
-            }
-            catch (err)
-            {
-                console.error('[preload] openExternal failed:', err.message)
-            }
-        },
-
-        // ── Open Rails log in default text editor ────────────────
-        // Asks main.js to open the rails.log file that lives in
-        // userData/.electron-cache/rails.log. Useful for debugging
-        // API startup failures in packaged (production) builds
-        // where the DevTools console is not available.
-        //
-        // Usage (DevTools console): window.api.openLog()
-        //
-        openLog ()
+        openLog()
         {
             return safeInvoke('open-log')
         },
 
-        // ── Custom title bar — window controls ───────────────────
-        // The frameless window has no OS title bar; these methods
-        // drive the custom .titlebar buttons rendered in index.html.
-        //
-        winMinimize () { ipcRenderer.send('win-minimize') },
-        winMaximize () { ipcRenderer.send('win-maximize') },  // toggles restore too
-        winClose ()    { ipcRenderer.send('win-close')    },
-
-        // ── Custom title bar — maximise state listener ───────────
-        // Registers a callback that fires whenever the window moves
-        // between maximised and restored states. Used by nav.js to
-        // swap the ▢ / ❐ icon on the maximise button.
-        //
-        // @param {function} callback — receives (isMaximized: boolean)
-        //
-        onWinMaximized (callback)
+        winMinimize()
         {
-            if (typeof callback !== 'function') return
-            ipcRenderer.on('win-maximized', (_event, isMax) => callback(isMax))
+            ipcRenderer.send('win-minimize')
         },
 
-        // ── Navigation events from main process ──────────────────
-        // Registers a callback for Ctrl+1…6 global shortcut events
-        // forwarded from main.js. nav.js uses this to switch the
-        // active sidebar section without a mouse click.
-        //
-        // @param {function} callback — receives (section: string)
-        //
-        onNav (callback)
+        winMaximize()
+        {
+            ipcRenderer.send('win-maximize')
+        },
+
+        winClose()
+        {
+            ipcRenderer.send('win-close')
+        },
+
+        onWinMaximized(callback)
         {
             if (typeof callback !== 'function') return
-            ipcRenderer.on('navigate', (_event, section) => callback(section))
+
+            ipcRenderer.on('win-maximized', (_event, isMaximized) =>
+            {
+                callback(Boolean(isMaximized))
+            })
+        },
+
+        onNav(callback)
+        {
+            if (typeof callback !== 'function') return
+
+            ipcRenderer.on('navigate', (_event, section) =>
+            {
+                callback(section)
+            })
+        },
+
+        config: {
+            railsBase: RAILS_BASE,
+            apiTimeoutMs: API_TIMEOUT_MS
         }
     })
 
-// ───────────────────────────────────────────────────────────
-// FMOD Sound Engine API (window.sound)
-// ───────────────────────────────────────────────────────────
-// All methods here are thin wrappers around ipcRenderer.invoke()
-// handlers registered in main.js, which in turn call your
-// koffi / FMOD soundengine module. Renderer never touches
-// native DLLs directly.
-//
-// NOTE: main.js must register a matching ipcMain.handle() for
-// every 'sound:*' channel below — including 'sound:categories',
-// which is easy to forget since it has no dedicated UI element
-// name to match against.
 // ═══════════════════════════════════════════════════════════
-
+//  FMOD bridge — window.sound
+// ═══════════════════════════════════════════════════════════
 contextBridge.exposeInMainWorld('sound',
     {
-        // ── SFX helpers ─────────────────────────────────────
-        // @param {string} category — e.g. 'ui', 'click', 'error'
-        //
-        playSfx (category)
+        playSfx(category)
         {
-            const cat = String(category || '').toLowerCase()
-            return safeInvoke('sound:play-sfx', cat)
+            const normalized = String(category || '').trim().toLowerCase()
+
+            if (!normalized) return Promise.resolve(false)
+
+            return safeInvoke('sound:play-sfx', normalized)
         },
 
-        // Play a random SFX from any loaded category.
-        playAny ()
+        playAny()
         {
             return safeInvoke('sound:play-any')
         },
 
-        // ── Music helpers ───────────────────────────────────
-        // @param {string} name — track name from listMusic()
-        //
-        playMusic (name)
+        playMusic(name = null)
         {
-            // If name is null/undefined, main.js can pick a default track.
             return safeInvoke('sound:play-music', name || null)
         },
 
-        stopMusic ()
+        stopMusic()
         {
             return safeInvoke('sound:stop-music')
         },
 
-        // ── Volume / mute ───────────────────────────────────
-        // @param {number} v — 0.0 … 1.0 (NOT 0–100; divide slider
-        //                     values by 100 before calling these)
-        //
-        setMasterVolume (v)
-        {
-            return safeInvoke('sound:set-master-volume', Number(v))
-        },
-
-        setMusicVolume (v)
-        {
-            return safeInvoke('sound:set-music-volume', Number(v))
-        },
-
-        setSfxVolume (v)
-        {
-            return safeInvoke('sound:set-sfx-volume', Number(v))
-        },
-
-        setMuteAll (muted)
-        {
-            return safeInvoke('sound:set-mute-all', !!muted)
-        },
-
-        // ── Introspection ───────────────────────────────────
-        // Returns array of track names (string[]).
-        async listMusic ()
+        async listMusic()
         {
             const result = await safeInvoke('sound:list-music')
             return Array.isArray(result) ? result : []
         },
 
-        // Returns boolean indicating whether a music channel
-        // is currently playing.
-        async isMusicPlaying ()
+        async isMusicPlaying()
         {
-            const result = await safeInvoke('sound:is-music-playing')
-            return !!result
+            return Boolean(await safeInvoke('sound:is-music-playing'))
         },
 
-        // Returns array of { id, name, isDefault } output devices.
-        async listOutputDevices ()
+        setMasterVolume(value)
+        {
+            return safeInvoke('sound:set-master-volume', normaliseVolume(value))
+        },
+
+        setSfxVolume(value)
+        {
+            return safeInvoke('sound:set-sfx-volume', normaliseVolume(value))
+        },
+
+        setMusicVolume(value)
+        {
+            return safeInvoke('sound:set-music-volume', normaliseVolume(value))
+        },
+
+        setMuteAll(muted)
+        {
+            return safeInvoke('sound:set-mute-all', Boolean(muted))
+        },
+
+        async listOutputDevices()
         {
             const result = await safeInvoke('sound:list-output-devices')
             return Array.isArray(result) ? result : []
         },
 
-        setOutputDevice (index)
+        setOutputDevice(index)
         {
-            return safeInvoke('sound:set-output-device', Number(index))
+            const outputIndex = Number(index)
+
+            if (!Number.isInteger(outputIndex) || outputIndex < 0)
+            {
+                return Promise.resolve(false)
+            }
+
+            return safeInvoke('sound:set-output-device', outputIndex)
         },
 
-        // Returns array of { category, count } loaded SFX groups.
-        async categories ()
+        async categories()
         {
             const result = await safeInvoke('sound:categories')
             return Array.isArray(result) ? result : []
         }
     })
+
+// Accept either 0.0–1.0 values or a raw 0–100 HTML range value.
+function normaliseVolume(value)
+{
+    const number = Number(value)
+
+    if (!Number.isFinite(number)) return 1
+
+    const fraction = number > 1 ? number / 100 : number
+
+    return Math.max(0, Math.min(1, fraction))
+}
+
+console.log('[preload] bridge ready', {
+    railsBase: RAILS_BASE,
+    timeoutMs: API_TIMEOUT_MS,
+    apiExposed: true,
+    soundExposed: true
+})
