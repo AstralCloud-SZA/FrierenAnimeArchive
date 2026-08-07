@@ -105,16 +105,17 @@ html, body
 /* ============================================================
    APP SHELL — transparent so canvas bleeds through
 ============================================================ */
-.app-shell
-{
+.app-shell {
     position: relative;
     z-index: 1;
     display: grid;
     grid-template-columns: 232px 1fr;
     grid-template-rows: 66px 1fr;
-    grid-template-areas:"sidebar header""sidebar main";
-    height: 100vh;
-    background: transparent; /* ← canvas must show through here */
+    grid-template-areas:"sidebar header" "sidebar main";
+    height: calc(100vh - 38px);
+    margin-top: 38px;
+    background: transparent;
+    min-height: 0;
 }
 
 /* ============================================================
@@ -474,20 +475,30 @@ html, body
 /* ============================================================
    MAIN CONTENT — semi-transparent so canvas bleeds through
 ============================================================ */
-.main
-{
+.main {
     grid-area: main;
-    overflow: auto;
+    overflow: hidden;
     padding: 26px;
-    /* ✅ solid hex → rgba so canvas is visible beneath */
+    min-height: 0;
     background:
-            radial-gradient(ellipse at 50% 0%,   rgba(240, 208, 112, 0.07) 0%, transparent 55%),
-            radial-gradient(ellipse at 50% 100%, rgba(77,  184, 160, 0.04) 0%, transparent 60%),
-            linear-gradient(160deg, rgba(2,  4,  8, 0.82) 0%, rgba(3,  6, 16, 0.82) 50%, rgba(2,  4,  8, 0.82) 100%);
+            radial-gradient(ellipse at 50% 0%, rgba(240, 208, 112, 0.07) 0%, transparent 55%),
+            radial-gradient(ellipse at 50% 100%, rgba(77, 184, 160, 0.04) 0%, transparent 60%),
+            linear-gradient(160deg, rgba(2, 4, 8, 0.82) 0%, rgba(3, 6, 16, 0.82) 50%, rgba(2, 4, 8, 0.82) 100%);
 }
 
-.section { display: none; animation: fade-in 0.28s ease; }
-.section.visible { display: block; }
+.section {
+    display: none;
+    min-height: 100%;
+    min-width: 0;
+}
+
+.section.visible {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    overflow: auto;
+}
 
 @keyframes fade-in
 {
@@ -643,7 +654,23 @@ html, body
     color:var(--frost-deep);
 }
 
+#section-news.reader-open > .glass-card:first-child,
+#section-news.reader-open > #news-list {
+    display: none;
+}
 
+#news-reader {
+    display: none;
+    min-height: 0;
+}
+
+#section-news.reader-open > #news-reader {
+    display: flex !important;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1 1 auto;
+    min-height: 0;
+}
 
 /* ── Celestial Manuscript — Article Typography ─────────── */
 .article-full-content
@@ -784,26 +811,29 @@ html, body
 }
 
 
-
-.webview
-{
-    display: block;
+.webview {
+    display: block !important;
     width: 100%;
-    height: min(70vh, 850px);
-    min-height: 460px;
+    flex: 1 1 auto;
+    min-height: 420px;
+    min-width: 0;
     margin-top: 12px;
     border: 1px solid var(--border);
     border-radius: 12px;
     background: var(--bg-deep);
     flex-shrink: 0;
-    overflow: hidden;
 }
 
-#news-webview
-{
-    height: min(72vh, 900px);
+#news-webview,
+#anime-webview {
     min-height: 500px;
 }
+
+#manga-webview
+{
+    min-height: 380px;
+}
+
 
 #ddg-webview
 {
@@ -811,18 +841,7 @@ html, body
     min-height: 420px;
 }
 
-#anime-webview
-{
-    height: min(72vh, 900px);
-    min-height: 500px;
-    background: #c6d3e8;
-}
 
-#manga-webview
-{
-    height: min(58vh, 700px);
-    min-height: 380px;
-}
 
 /* ── Favourites tabs ──────────────────────── */
 .fav-tabs {
@@ -963,10 +982,6 @@ html, body
     color:      #f87171;
 }
 
-/* Push app-shell down to clear the title bar */
-.app-shell {
-    padding-top: 38px;
-}
 
 
 /* ============================================================

@@ -31,7 +31,6 @@
 </head>
 
 <body>
-<!-- ═══ CUSTOM TITLE BAR ═══ -->
 <div class="titlebar" id="titlebar">
   <div class="titlebar-drag">
     <div class="titlebar-orb"></div>
@@ -49,7 +48,6 @@
 <canvas id="snow-canvas"></canvas>
 
 <div class="app-shell">
-  <!-- ═══ SIDEBAR ═══ -->
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="brand-orb"></div>
@@ -109,7 +107,6 @@
     </div>
   </aside>
 
-  <!-- ═══ HEADER ═══ -->
   <header class="app-header">
     <div class="header-breadcrumb">
       Frieren Archive &rsaquo;
@@ -118,7 +115,6 @@
 
     <div class="header-search">
       <span class="header-search-icon">🔮</span>
-
       <input
               type="text"
               id="global-search"
@@ -143,11 +139,9 @@
     </div>
   </header>
 
-  <!-- ═══ MAIN ═══ -->
   <main class="main">
-    <!-- ── NEWS ── -->
     <section class="section visible" id="section-news">
-      <div class="glass-card">
+      <div class="glass-card" id="news-intro-card">
         <div class="card-heading">📜 Latest Anime News</div>
 
         <div class="card-body">
@@ -168,7 +162,7 @@
         </div>
       </div>
 
-      <div id="news-reader" hidden>
+      <div id="news-reader" style="display:none;">
         <div class="glass-card">
           <div class="card-heading news-reader-heading">
             <button
@@ -182,19 +176,9 @@
             <span id="news-reader-title">Article</span>
           </div>
         </div>
-
-        <webview
-                class="webview"
-                id="news-webview"
-                src="about:blank"
-                partition="persist:news"
-                useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                allowpopups>
-        </webview>
       </div>
     </section>
 
-    <!-- ── MYANIMELIST ── -->
     <section class="section" id="section-mal">
       <div class="glass-card">
         <div class="card-heading">📖 MyAnimeList · Jikan Search</div>
@@ -224,14 +208,11 @@
 
       <div class="empty-state" id="mal-empty">
         <div class="empty-icon">📖</div>
-
         <p>Search for any anime above to begin exploring.</p>
-
         <em>"Knowledge gained through long years of study is never truly lost."</em>
       </div>
     </section>
 
-    <!-- ── QUICK SEARCH ── -->
     <section class="section" id="section-search">
       <div class="glass-card">
         <div class="card-heading">🔮 Quick Search · DuckDuckGo</div>
@@ -257,17 +238,9 @@
           Search
         </button>
 
-        <button class="header-btn" id="ddg-back" type="button" title="Back">
-          ←
-        </button>
-
-        <button class="header-btn" id="ddg-forward" type="button" title="Forward">
-          →
-        </button>
-
-        <button class="header-btn" id="ddg-reload" type="button" title="Reload">
-          ↺
-        </button>
+        <button class="header-btn" id="ddg-back" type="button" title="Back">←</button>
+        <button class="header-btn" id="ddg-forward" type="button" title="Forward">→</button>
+        <button class="header-btn" id="ddg-reload" type="button" title="Reload">↺</button>
       </div>
 
       <webview
@@ -281,7 +254,6 @@
       </webview>
     </section>
 
-    <!-- ── FAVOURITES ── -->
     <section class="section" id="section-favorites">
       <div class="glass-card">
         <div class="card-heading">⭐ Favourites</div>
@@ -292,13 +264,8 @@
       </div>
 
       <div class="fav-tabs">
-        <button class="fav-tab active" data-tab="fav-anime" type="button">
-          📖 Anime
-        </button>
-
-        <button class="fav-tab" data-tab="fav-articles" type="button">
-          📜 Articles
-        </button>
+        <button class="fav-tab active" data-tab="fav-anime" type="button">📖 Anime</button>
+        <button class="fav-tab" data-tab="fav-articles" type="button">📜 Articles</button>
       </div>
 
       <div id="fav-anime" class="fav-panel">
@@ -322,7 +289,6 @@
       </div>
     </section>
 
-    <!-- ── WATCH ANIME ── -->
     <section class="section" id="section-anime">
       <div class="glass-card">
         <div class="card-heading">🎬 Watch Anime — 9Anime</div>
@@ -333,17 +299,9 @@
       </div>
 
       <div class="ddg-toolbar">
-        <button class="header-btn" id="anime-back" type="button" title="Back">
-          ←
-        </button>
-
-        <button class="header-btn" id="anime-forward" type="button" title="Forward">
-          →
-        </button>
-
-        <button class="header-btn" id="anime-reload" type="button" title="Reload">
-          ↺
-        </button>
+        <button class="header-btn" id="anime-back" type="button" title="Back">←</button>
+        <button class="header-btn" id="anime-forward" type="button" title="Forward">→</button>
+        <button class="header-btn" id="anime-reload" type="button" title="Reload">↺</button>
       </div>
 
       <webview
@@ -357,7 +315,6 @@
       </webview>
     </section>
 
-    <!-- ── READ MANGA ── -->
     <section class="section" id="section-manga">
       <div class="glass-card">
         <div class="card-heading">📚 Read Manga — MangaDex</div>
@@ -383,17 +340,9 @@
       </button>
 
       <div class="ddg-toolbar">
-        <button class="header-btn" id="manga-back" type="button" title="Back">
-          ←
-        </button>
-
-        <button class="header-btn" id="manga-forward" type="button" title="Forward">
-          →
-        </button>
-
-        <button class="header-btn" id="manga-reload" type="button" title="Reload">
-          ↺
-        </button>
+        <button class="header-btn" id="manga-back" type="button" title="Back">←</button>
+        <button class="header-btn" id="manga-forward" type="button" title="Forward">→</button>
+        <button class="header-btn" id="manga-reload" type="button" title="Reload">↺</button>
       </div>
 
       <webview
@@ -409,7 +358,6 @@
       <div class="news-list" id="manga-history-list"></div>
     </section>
 
-    <!-- ── SETTINGS ── -->
     <section class="section" id="section-settings">
       <div class="glass-card">
         <div class="card-heading">⚙️ Settings</div>
@@ -456,16 +404,7 @@
                 </div>
 
                 <div class="setting-control-row">
-                  <input
-                          class="audio-range"
-                          type="range"
-                          id="master-volume"
-                          min="0"
-                          max="100"
-                          step="1"
-                          value="100"
-                  >
-
+                  <input class="audio-range" type="range" id="master-volume" min="0" max="100" step="1" value="100">
                   <span class="badge" id="master-volume-value">100%</span>
                 </div>
               </div>
@@ -479,16 +418,7 @@
                 </div>
 
                 <div class="setting-control-row">
-                  <input
-                          class="audio-range"
-                          type="range"
-                          id="music-volume"
-                          min="0"
-                          max="100"
-                          step="1"
-                          value="55"
-                  >
-
+                  <input class="audio-range" type="range" id="music-volume" min="0" max="100" step="1" value="55">
                   <span class="badge" id="music-volume-value">55%</span>
                 </div>
               </div>
@@ -502,16 +432,7 @@
                 </div>
 
                 <div class="setting-control-row">
-                  <input
-                          class="audio-range"
-                          type="range"
-                          id="sfx-volume"
-                          min="0"
-                          max="100"
-                          step="1"
-                          value="100"
-                  >
-
+                  <input class="audio-range" type="range" id="sfx-volume" min="0" max="100" step="1" value="100">
                   <span class="badge" id="sfx-volume-value">100%</span>
                 </div>
               </div>
@@ -526,22 +447,8 @@
 
                 <div class="setting-control-row">
                   <span class="badge" id="audio-now-playing">Idle</span>
-
-                  <button
-                          class="header-btn"
-                          id="audio-play-toggle"
-                          type="button"
-                  >
-                    Play / Resume
-                  </button>
-
-                  <button
-                          class="header-btn"
-                          id="audio-stop-btn"
-                          type="button"
-                  >
-                    Stop
-                  </button>
+                  <button class="header-btn" id="audio-play-toggle" type="button">Play / Resume</button>
+                  <button class="header-btn" id="audio-stop-btn" type="button">Stop</button>
                 </div>
               </div>
             </div>
@@ -561,11 +468,7 @@
                   <option value="">Default device</option>
                 </select>
 
-                <button
-                        class="header-btn"
-                        id="audio-output-refresh"
-                        type="button"
-                >
+                <button class="header-btn" id="audio-output-refresh" type="button">
                   Refresh Devices
                 </button>
               </div>

@@ -307,7 +307,7 @@ function setApiStatus (online)
 }
 
 // ═══════════════════════════════════════════════════════════
-//  5. NEWS — load, in-app reader, star/save
+//  5. NEWS — native injected reader, star/save
 // ═══════════════════════════════════════════════════════════
 
 function newsCardHTML (article)
@@ -317,6 +317,7 @@ function newsCardHTML (article)
             day: 'numeric', month: 'short', year: 'numeric'
         })
         : '—'
+
     const saved    = isFavArticle(article.url)
     const safeJson = escHtml(JSON.stringify(article))
     const img      = article.image || article.thumbnail || article.image_url || ''
@@ -356,178 +357,175 @@ function newsCardHTML (article)
     </div>`
 }
 
-const newsReaderOrigCard = () => newsReader.querySelector('.glass-card')
+function resetNewsReader ()
+{
+    const old = $('news-native-detail')
+    if (old) old.remove()
+
+    if (newsReaderTitle) newsReaderTitle.textContent = 'Article'
+
+    if (newsWebview)
+    {
+        newsWebview.style.display = 'none'
+        newsWebview.src = 'about:blank'
+    }
+}
 
 function closeNewsDetail ()
 {
-    const orig = newsReaderOrigCard()
-    if (orig) orig.style.display = ''
-    newsReader.style.display  = 'none'
-    newsWebview.style.display = ''
-    newsList.style.display    = 'block'
-    newsWebview.src           = 'about:blank'
-    const old = $('news-native-detail')
-    if (old) old.remove()
+    resetNewsReader()
+    newsReader.style.display = 'none'
+    newsList.style.display   = 'block'
     playSfx('back')
+}
+
+function bindArticleContentInteractions (root, article)
+{
+    root.querySelectorAll('.article-full-content a').forEach(a => {
+        a.addEventListener('click', e => {
+            e.preventDefault()
+            const href = a.getAttribute('href')
+            if (!href) return
+
+            playSfx('open')
+            window.navigateTo('search')
+            ddgWebview.src = href
+            ddgInput.value = a.textContent || ''
+        })
+    })
+
+    root.querySelectorAll('.article-full-content img').forEach(el => {
+        el.style.maxWidth     = '100%'
+        el.style.borderRadius = '8px'
+        el.style.margin       = '12px 0'
+        el.style.display      = 'block'
+
+        el.onerror = () => {
+            el.style.display = 'none'
+            const placeholder = document.createElement('div')
+            placeholder.style.cssText = `
+                width:100%;
+                height:80px;
+                border-radius:8px;
+                margin:12px 0;
+                background:var(--glass);
+                border:1px solid var(--border);
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                font-size:13px;
+                color:var(--text-dim);
+                letter-spacing:0.08em;`
+            placeholder.textContent = '🖼 Image unavailable'
+            el.parentNode?.insertBefore(placeholder, el.nextSibling)
+        }
+    })
+
+    $('news-open-external')?.addEventListener('click', () => {
+        playSfx('open')
+        window.navigateTo('search')
+        ddgWebview.src = article.url
+        ddgInput.value = article.title || ''
+    })
+}
+
+function buildArticleMetaHTML (article, date, img)
+{
+    return `
+    <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;margin-bottom:24px;">
+      ${img ? `
+      <img src="${escHtml(img)}" alt=""
+           referrerpolicy="no-referrer"
+           style="width:160px;height:220px;object-fit:cover;border-radius:10px;
+                  border:1px solid var(--border);flex-shrink:0;
+                  box-shadow:0 8px 32px rgba(0,0,0,0.5);">` : ''}
+      <div style="flex:1;min-width:200px;">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+          <span class="badge">${escHtml(article.source_name || 'Archive')}</span>
+          <span class="badge">${escHtml(date)}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Source</span>
+          <span>${escHtml(article.source_name || '—')}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Published</span>
+          <span>${escHtml(date)}</span>
+        </div>
+      </div>
+    </div>`
 }
 
 async function showArticleDetail (article)
 {
     const date = article.published_at
         ? new Date(article.published_at).toLocaleDateString('en-ZA', {
-            day: 'numeric', month: 'short', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         })
         : '—'
+
     const img = article.image || article.thumbnail || article.image_url || ''
 
-    const orig = newsReaderOrigCard()
-    if (orig) orig.style.display = 'none'
-    newsWebview.style.display = 'none'
-    newsWebview.src           = 'about:blank'
-    newsList.style.display    = 'none'
-    newsReader.style.display  = 'block'
+    resetNewsReader()
 
-    const old = $('news-native-detail')
-    if (old) old.remove()
+    if (newsReaderTitle)
+    {
+        newsReaderTitle.textContent = article.title || 'Article'
+    }
+
+    newsList.style.display   = 'none'
+    newsReader.style.display = 'block'
 
     const detail = document.createElement('div')
     detail.id = 'news-native-detail'
     detail.innerHTML = `
     <div class="glass-card" style="margin-top:12px;">
-      <div class="card-heading"
-           style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-        <span id="news-detail-back"
-              style="font-size:14px;opacity:0.65;cursor:pointer;
-                     letter-spacing:0.1em;transition:opacity 0.2s;"
-              onmouseover="this.style.opacity=1"
-              onmouseout="this.style.opacity=0.65">← Back to News</span>
-        <span style="flex:1;">${escHtml(article.title || 'Article')}</span>
-      </div>
       <div class="card-body" id="news-detail-body">
         ${loading('Fetching full article…')}
       </div>
     </div>`
 
     newsReader.appendChild(detail)
-    $('news-detail-back').addEventListener('click', () => closeNewsDetail())
 
-    playSfx('open')
+    await playSfx('open')
 
     const result = await API.get(`/api/news/content?url=${encodeURIComponent(article.url)}`)
-    const body   = $('news-detail-body')
+    const body = $('news-detail-body')
+
+    if (!body) return
 
     if (result.ok && result.data?.content)
     {
         body.innerHTML = `
-        <div style="display:flex;gap:22px;flex-wrap:wrap;
-                    align-items:flex-start;margin-bottom:24px;">
-          ${img ? `
-          <img src="${escHtml(img)}" alt=""
-               referrerpolicy="no-referrer"
-               style="width:160px;height:220px;object-fit:cover;border-radius:10px;
-                      border:1px solid var(--border);flex-shrink:0;
-                      box-shadow:0 8px 32px rgba(0,0,0,0.5);">` : ''}
-          <div style="flex:1;min-width:200px;">
-            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
-              <span class="badge">${escHtml(article.source_name || 'Archive')}</span>
-              <span class="badge">${escHtml(date)}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Source</span>
-              <span>${escHtml(article.source_name || '—')}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Published</span>
-              <span>${escHtml(date)}</span>
-            </div>
-          </div>
-        </div>
-
+        ${buildArticleMetaHTML(article, date, img)}
         <div id="article-full-content" class="article-full-content"
              style="font-size:16px;line-height:1.9;color:var(--silver-Kawaii);
                     border-top:1px solid var(--border);padding-top:20px;">
           ${plainToHtml(result.data.content)}
         </div>`
-
-        detail.querySelectorAll('.article-full-content a').forEach(a => {
-            a.addEventListener('click', e => {
-                e.preventDefault()
-                const href = a.getAttribute('href')
-                if (href) {
-                    playSfx('open')
-                    window.navigateTo('search')
-                    ddgWebview.src = href
-                    ddgInput.value = a.textContent || ''
-                }
-            })
-        })
-
-        detail.querySelectorAll('.article-full-content img').forEach(el => {
-            el.style.maxWidth     = '100%'
-            el.style.borderRadius = '8px'
-            el.style.margin       = '12px 0'
-            el.style.display      = 'block'
-            el.onerror = () => {
-                el.style.display = 'none'
-                const placeholder = document.createElement('div')
-                placeholder.style.cssText = `
-                    width:100%;height:80px;border-radius:8px;margin:12px 0;
-                    background:var(--glass);border:1px solid var(--border);
-                    display:flex;align-items:center;justify-content:center;
-                    font-size:13px;color:var(--text-dim);letter-spacing:0.08em;`
-                placeholder.textContent = '🖼  Image unavailable'
-                el.parentNode?.insertBefore(placeholder, el.nextSibling)
-            }
-        })
     }
     else
     {
         body.innerHTML = `
-        <div style="display:flex;gap:22px;flex-wrap:wrap;
-                    align-items:flex-start;margin-bottom:24px;">
-          ${img ? `
-          <img src="${escHtml(img)}" alt=""
-               referrerpolicy="no-referrer"
-               style="width:160px;height:220px;object-fit:cover;border-radius:10px;
-                      border:1px solid var(--border);flex-shrink:0;
-                      box-shadow:0 8px 32px rgba(0,0,0,0.5);">` : ''}
-          <div style="flex:1;min-width:200px;">
-            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
-              <span class="badge">${escHtml(article.source_name || 'Archive')}</span>
-              <span class="badge">${escHtml(date)}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Source</span>
-              <span>${escHtml(article.source_name || '—')}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">Published</span>
-              <span>${escHtml(date)}</span>
-            </div>
-          </div>
-        </div>
-
+        ${buildArticleMetaHTML(article, date, img)}
         <div class="article-full-content"
              style="font-size:16px;line-height:1.9;color:var(--silver-Kawaii);
                     border-top:1px solid var(--border);padding-top:20px;">
           ${plainToHtml(article.summary || 'No content available.')}
         </div>
-
         <div style="margin-top:20px;">
           <button class="search-btn" id="news-open-external"
                   style="font-size:14px;padding:10px 22px;">
             🔗 Read on ${escHtml(article.source_name || 'Source')}
           </button>
         </div>`
-
-        $('news-open-external')?.addEventListener('click', () => {
-            playSfx('open')
-            window.navigateTo('search')
-            ddgWebview.src = article.url
-            ddgInput.value = article.title || ''
-        })
     }
+
+    bindArticleContentInteractions(detail, article)
 }
 
 newsReaderBack?.addEventListener('click', () => closeNewsDetail())
@@ -537,7 +535,7 @@ async function checkHealth ()
     btnHealth.textContent = 'Checking…'
     btnHealth.disabled    = true
 
-    playSfx('ui')
+    await playSfx('ui')
 
     const result = await API.get('/api/health')
     setApiStatus(result.ok)
@@ -545,22 +543,23 @@ async function checkHealth ()
     btnHealth.textContent = 'Check Health'
     btnHealth.disabled    = false
 
-    if (result.ok) playSfx('success')
-    else playSfx('error')
+    if (result.ok) await playSfx('success')
+    else await playSfx('error')
 
     return result.ok
 }
 
 async function loadNews ()
 {
+    resetNewsReader()
+    newsReader.style.display = 'none'
+    newsList.style.display   = 'block'
+
     newsList.innerHTML  = loading('Summoning news from the archive…')
     btnNews.disabled    = true
     btnNews.textContent = 'Loading…'
 
-    newsReader.style.display = 'none'
-    newsList.style.display   = 'block'
-
-    playSfx('ui')
+    await playSfx('ui')
 
     const result = await API.post('/api/news/refresh')
 
@@ -569,10 +568,10 @@ async function loadNews ()
         newsList.innerHTML = emptyState(
             '❄️',
             'Could not reach the Rails API.<br>Make sure <code>rails s</code> is running.',
-            '\"Even the greatest mage cannot conjure what is not there.\"'
+            '"Even the greatest mage cannot conjure what is not there."'
         )
         setApiStatus(false)
-        playSfx('error')
+        await playSfx('error')
     }
     else
     {
@@ -583,7 +582,7 @@ async function loadNews ()
             newsList.innerHTML = emptyState(
                 '🌿',
                 'No articles in the archive yet.',
-                '\"A quiet world is still a world worth wandering.\"'
+                '"A quiet world is still a world worth wandering."'
             )
         }
         else
@@ -632,8 +631,9 @@ async function loadNews ()
                 })
             })
         }
+
         setApiStatus(true)
-        playSfx('success')
+        await playSfx('success')
     }
 
     btnNews.disabled    = false
@@ -830,7 +830,7 @@ async function searchMAL (query)
     if (malEmpty) malEmpty.style.display = 'none'
     malOutput.innerHTML = loading('Searching the Grimoire…')
 
-    playSfx('ui')
+    await playSfx('ui')
 
     const sfw    = localStorage.getItem('sfw_filter') === 'true'
     const url    = `/api/anime/search?q=${encodeURIComponent(query.trim())}&sfw=${sfw}`
@@ -844,7 +844,7 @@ async function searchMAL (query)
             '"Not every tome is open to those who seek it."'
         )
         setApiStatus(false)
-        playSfx('error')
+        await playSfx('error')
         return
     }
 
@@ -890,7 +890,7 @@ async function searchMAL (query)
                 const id = card.dataset.malId
                 if (!id) return
 
-                playSfx('open')
+                await playSfx('open')
                 malOutput.innerHTML = loading('Opening grimoire entry…')
                 const detail = await API.get(`/api/anime/${id}`)
 
@@ -907,7 +907,7 @@ async function searchMAL (query)
                     catch
                     {
                         malOutput.innerHTML = emptyState('❄️', 'Could not load details.', '')
-                        playSfx('error')
+                        await playSfx('error')
                     }
                 }
             })
@@ -915,7 +915,7 @@ async function searchMAL (query)
     }
 
     setApiStatus(true)
-    playSfx('success')
+    await playSfx('success')
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1041,7 +1041,7 @@ function renderFavourites ()
                 if (e.target.classList.contains('fav-remove-btn')) return
                 const id = card.dataset.malId
                 if (!id) return
-                playSfx('open')
+                await playSfx('open')
                 window.navigateTo('mal')
                 if (malEmpty) malEmpty.style.display = 'none'
                 malOutput.innerHTML = loading('Opening grimoire entry…')
@@ -1259,14 +1259,14 @@ sfxVolumeSlider?.addEventListener('input', () =>
 {
     const v = Number(sfxVolumeSlider.value) / 100;
     soundInvoke('setSfxVolume', v);
-    const badge = id('sfx-volume-value');
+    const badge = $('sfx-volume-value')
     if (badge) badge.textContent = Math.round(v * 100) + '%';
 });
 
 // ── Play / Resume ──
 playToggleBtn?.addEventListener('click', async () =>
 {
-    playSfx('ui');
+    await playSfx('ui');
     const playing = await soundInvoke('isMusicPlaying');
     if (!playing) {
         await ensureBackgroundMusic();
@@ -1277,7 +1277,7 @@ playToggleBtn?.addEventListener('click', async () =>
 // ── Stop ──
 stopBtn?.addEventListener('click', async () =>
 {
-    playSfx('ui');
+    await playSfx('ui');
     await stopMusic();
     if (nowPlayingBadge) nowPlayingBadge.textContent = 'Idle';
 });
