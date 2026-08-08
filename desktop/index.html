@@ -12,7 +12,7 @@
       style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
       font-src 'self' https://fonts.gstatic.com data:;
       img-src 'self' data: blob: http: https:;
-      connect-src 'self' http://127.0.0.1:4376 https:;
+      connect-src 'self' http://127.0.0.1:4376 http://localhost:3001 https:;
       media-src 'self' data: blob: http: https:;
     "
   >
@@ -162,14 +162,10 @@
         </div>
       </div>
 
-      <div id="news-reader" style="display:none;">
+      <div id="news-reader" hidden>
         <div class="glass-card">
           <div class="card-heading news-reader-heading">
-            <button
-                    id="news-reader-back"
-                    class="news-reader-back"
-                    type="button"
-            >
+            <button id="news-reader-back" class="news-reader-back" type="button">
               ← Back to News
             </button>
 

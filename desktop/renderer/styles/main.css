@@ -110,13 +110,14 @@ html, body
     position: relative;
     z-index: 1;
     display: grid;
-    grid-template-columns: 232px 1fr;
-    grid-template-rows: 66px 1fr;
+    grid-template-columns: 232px minmax(0, 1fr);
+    grid-template-rows: 66px minmax(0, 1fr);
     grid-template-areas:"sidebar header" "sidebar main";
     height: calc(100vh - 38px);
     margin-top: 38px;
     background: transparent;
     min-height: 0;
+    min-width: 0;
 }
 
 /* ============================================================
@@ -317,17 +318,20 @@ html, body
 /* ============================================================
    HEADER — void glass, gold hairline
 ============================================================ */
-.app-header {
+.app-header
+{
     grid-area: header;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 16px;
     padding: 0 24px;
     background: rgba(3, 6, 14, 0.92);
     backdrop-filter: blur(24px);
     border-bottom: 1px solid var(--border);
     position: relative;
     z-index: 10;
+    min-width: 0;
 }
 
 /* Gold-white → teal hairline */
@@ -353,14 +357,17 @@ html, body
 
 .header-breadcrumb .page-name { color: var(--gold-bright); }
 
-.header-search {
-    flex: 1;
+.header-search
+{
+    flex: 1 1 auto;
     max-width: 340px;
+    min-width: 0;
     margin: 0 22px;
     position: relative;
 }
 
-.header-search input {
+.header-search input
+{
     width: 100%;
     background: var(--gold-panel);
     border: 1px solid var(--border);
@@ -484,6 +491,7 @@ html, body
     overflow: hidden;
     padding: 26px;
     min-height: 0;
+    min-width: 0;
     background:
             radial-gradient(ellipse at 50% 0%, rgba(240, 208, 112, 0.07) 0%, transparent 55%),
             radial-gradient(ellipse at 50% 100%, rgba(77, 184, 160, 0.04) 0%, transparent 60%),
@@ -504,6 +512,7 @@ html, body
     gap: 12px;
     flex: 1 1 auto;
     min-height: 0;
+    min-width: 0;
     overflow: auto;
 }
 
@@ -520,7 +529,7 @@ html, body
     gap: 12px;
     padding: 6px 0;
     border-bottom: 1px solid rgba(240, 208, 112, 0.08);
-    font-family: var(--gold-bright);
+    color: var(--gold-bright);
     font-size: 18px;
 }
 
@@ -548,7 +557,6 @@ html, body
     padding: 22px 24px;
     backdrop-filter: blur(24px);
     box-shadow: 0 10px 48px rgba(0, 0, 0, 0.75), 0 0   30px rgba(240, 208, 112, 0.08), inset 0 1px rgba(253, 240, 200, 0.12);
-    margin-bottom: 18px;
     position: relative;
     overflow: hidden;
 }
@@ -671,15 +679,29 @@ html, body
     color:var(--frost-deep);
 }
 
-#section-news.reader-open > .glass-card:first-child,
+#section-news
+{
+    min-height: 0;
+    min-width: 0;
+}
+
+#section-news.reader-open > #news-intro-card,
 #section-news.reader-open > #news-list {
-    display: none;
+    display: none !important;
 }
 
 #news-reader
 {
     display: none;
     min-height: 0;
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+}
+
+#news-reader[hidden]
+{
+    display: none !important;
 }
 
 #section-news.reader-open > #news-reader {
@@ -688,6 +710,27 @@ html, body
     gap: 12px;
     flex: 1 1 auto;
     min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+#section-news.reader-open > #news-reader[hidden]
+{
+    display: flex !important;
+}
+
+#news-native-detail
+{
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    overflow: auto;
+    padding-right: 4px;
+}
+
+#news-native-detail > .glass-card
+{
+    margin-top: 0 !important;
 }
 
 /* ── Celestial Manuscript — Article Typography ─────────── */
@@ -830,12 +873,11 @@ html, body
     flex: 1 1 auto;
     min-height: 420px;
     min-width: 0;
-    margin-top: 12px;
     border: 1px solid var(--border);
     border-radius: 12px;
     background: var(--bg-deep);
+    overflow: hidden;
 }
-
 /* Optional per-section tweaks */
 .webview-anime
 {
@@ -1324,6 +1366,20 @@ html, body
     .audio-grid
     {
         grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 1100px)
+{
+    .app-shell
+    {
+        grid-template-columns: 200px minmax(0, 1fr);
+    }
+
+    .header-search
+    {
+        max-width: 260px;
+        margin: 0 12px;
     }
 }
 

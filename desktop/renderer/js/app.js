@@ -72,7 +72,7 @@ function escHtml(str)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
+        .replace(/\"/g, '&quot;')
 }
 
 function unescHtml(str)
@@ -122,6 +122,19 @@ function clamp01(v)
     const n = Number(v)
     if (Number.isNaN(n)) return 1
     return Math.max(0, Math.min(1, n))
+}
+
+function normalizeArticle(article = {})
+{
+    return {
+        ...article,
+        title: article.title || 'Untitled',
+        url: article.url || '',
+        summary: article.summary || '',
+        source_name: article.source_name || article.sourcename || 'Archive',
+        published_at: article.published_at || article.publishedat || null,
+        image: article.image || article.image_url || article.imageurl || article.thumbnail || ''
+    }
 }
 
 function getAudioEnabled()
@@ -241,7 +254,8 @@ async function ensureBackgroundMusic()
     }
 }
 
-function wireUiClickSounds() {
+function wireUiClickSounds()
+{
     document.addEventListener('click', e =>
     {
         const target = e.target?.closest?.('button, .fav-tab, .news-card, .mal-card, .news-item, [role="button"]')
@@ -269,6 +283,12 @@ function setApiStatus(online)
     if (settingsBadge) settingsBadge.textContent = online ? 'Connected' : 'Offline'
 }
 
+function resetNewsReader()
+{
+    $('news-native-detail')?.remove()
+    if (newsReaderTitle) newsReaderTitle.textContent = 'Article'
+}
+
 function openNewsDetailState(title = 'Article')
 {
     if (newsReaderTitle) newsReaderTitle.textContent = title
@@ -277,36 +297,37 @@ function openNewsDetailState(title = 'Article')
 
 function closeNewsDetail()
 {
-    const old = $('news-native-detail')
-    if (old) old.remove()
-    if (newsReaderTitle) newsReaderTitle.textContent = 'Article'
+    resetNewsReader()
     newsSection?.classList.remove('reader-open')
     playSfx('back')
 }
 
-function newsCardHTML(article)
+function newsCardHTML(rawArticle)
 {
+    const article = normalizeArticle(rawArticle)
     const date = article.published_at
-        ? new Date(article.published_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
-
+        ? new Date(article.published_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
+        : '—'
     const saved = isFavArticle(article.url)
     const safeJson = escHtml(JSON.stringify(article))
-    const img = article.image || article.thumbnail || article.image_url || ''
-    const summary = article.summary ? escHtml(article.summary.slice(0, 180)) + '…' : '<em style="opacity:0.5;">No summary available.</em>'
+    const img = article.image
+    const summary = article.summary
+        ? escHtml(article.summary.slice(0, 180)) + '…'
+        : '<em style="opacity:0.5;">No summary available.</em>'
 
     return `
-    <div class="news-card" data-url="${escHtml(article.url || '')}" data-article="${safeJson}" style="display:flex;gap:14px;align-items:flex-start;cursor:pointer;">
+    <div class="news-card" data-url="${escHtml(article.url)}" data-article="${safeJson}" style="display:flex;gap:14px;align-items:flex-start;cursor:pointer;">
       ${img
         ? `<img src="${escHtml(img)}" alt="" referrerpolicy="no-referrer" style="width:54px;height:76px;object-fit:cover;border-radius:6px;flex-shrink:0;opacity:0.90;">`
         : `<div style="width:54px;height:76px;flex-shrink:0;border-radius:6px;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:22px;opacity:0.4;">📰</div>`}
       <div style="flex:1;min-width:0;">
-        <div class="news-card-source" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>${escHtml(article.source_name || 'Archive')} · ${date}</span>
-          <button class="fav-star-btn" data-url="${escHtml(article.url || '')}" title="${saved ? 'Remove from favourites' : 'Save to favourites'}" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--gold);opacity:${saved ? 1 : 0.35};padding:0 2px;">
+        <div class="news-card-source" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <span>${escHtml(article.source_name)} · ${date}</span>
+          <button class="fav-star-btn" data-url="${escHtml(article.url)}" title="${saved ? 'Remove from favourites' : 'Save to favourites'}" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--gold);opacity:${saved ? 1 : 0.35};padding:0 2px;">
             ${saved ? '⭐' : '☆'}
           </button>
         </div>
-        <div class="news-card-title">${escHtml(article.title || 'Untitled')}</div>
+        <div class="news-card-title">${escHtml(article.title)}</div>
         <div class="news-card-summary">${summary}</div>
       </div>
     </div>
@@ -315,7 +336,8 @@ function newsCardHTML(article)
 
 function bindArticleContentInteractions(root, article)
 {
-    root.querySelectorAll('.article-full-content a').forEach(a => {
+    root.querySelectorAll('.article-full-content a').forEach(a =>
+    {
         a.addEventListener('click', e =>
         {
             e.preventDefault()
@@ -344,7 +366,7 @@ function bindArticleContentInteractions(root, article)
         }
     })
 
-    $('news-open-external')?.addEventListener('click', () =>
+    root.querySelector('#news-open-external')?.addEventListener('click', () =>
     {
         window.navigateTo?.('search')
         if (ddgWebview) ddgWebview.src = article.url
@@ -360,34 +382,33 @@ function buildArticleMetaHTML(article, date, img)
       ${img ? `<img src="${escHtml(img)}" alt="" referrerpolicy="no-referrer" style="width:160px;height:220px;object-fit:cover;border-radius:10px;border:1px solid var(--border);flex-shrink:0;box-shadow:0 8px 32px rgba(0,0,0,0.5);">` : ''}
       <div style="flex:1;min-width:200px;">
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
-          <span class="badge">${escHtml(article.source_name || 'Archive')}</span>
+          <span class="badge">${escHtml(article.source_name)}</span>
           <span class="badge">${escHtml(date)}</span>
         </div>
-        <div class="detail-row"><span class="detail-label">Source</span><span>${escHtml(article.source_name || '—')}</span></div>
+        <div class="detail-row"><span class="detail-label">Source</span><span>${escHtml(article.source_name)}</span></div>
         <div class="detail-row"><span class="detail-label">Published</span><span>${escHtml(date)}</span></div>
       </div>
     </div>
   `
 }
 
-async function showArticleDetail(article)
+async function showArticleDetail(rawArticle)
 {
+    const article = normalizeArticle(rawArticle)
     const date = article.published_at
         ? new Date(article.published_at).toLocaleDateString('en-ZA', {
             day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
         })
         : '—'
 
-    const img = article.image || article.thumbnail || article.image_url || ''
-    openNewsDetailState(article.title || 'Article')
-
-    const old = $('news-native-detail')
-    if (old) old.remove()
+    const img = article.image
+    resetNewsReader()
+    openNewsDetailState(article.title)
 
     const detail = document.createElement('div')
     detail.id = 'news-native-detail'
     detail.innerHTML = `
-    <div class="glass-card" style="margin-top:12px;">
+    <div class="glass-card">
       <div class="card-body" id="news-detail-body">
         ${loading('Fetching full article…')}
       </div>
@@ -401,14 +422,16 @@ async function showArticleDetail(article)
     const body = $('news-detail-body')
     if (!body) return
 
-    if (result.ok && result.data?.content) {
+    if (result.ok && result.data?.content)
+    {
         body.innerHTML = `
       ${buildArticleMetaHTML(article, date, img)}
       <div id="article-full-content" class="article-full-content" style="font-size:16px;line-height:1.9;color:var(--silver-Kawaii);border-top:1px solid var(--border);padding-top:20px;">
         ${plainToHtml(result.data.content)}
       </div>
     `
-    } else {
+    } else
+    {
         body.innerHTML = `
       ${buildArticleMetaHTML(article, date, img)}
       <div class="article-full-content" style="font-size:16px;line-height:1.9;color:var(--silver-Kawaii);border-top:1px solid var(--border);padding-top:20px;">
@@ -416,7 +439,7 @@ async function showArticleDetail(article)
       </div>
       <div style="margin-top:20px;">
         <button class="search-btn" id="news-open-external" style="font-size:14px;padding:10px 22px;">
-          🔗 Read on ${escHtml(article.source_name || 'Source')}
+          🔗 Read on ${escHtml(article.source_name)}
         </button>
       </div>
     `
@@ -474,8 +497,9 @@ async function loadNews()
         }
         setApiStatus(false)
         await playSfx('error')
-    } else {
-        const articles = Array.isArray(result.data) ? result.data : []
+    } else
+    {
+        const articles = Array.isArray(result.data) ? result.data.map(normalizeArticle) : []
 
         if (articles.length === 0)
         {
@@ -487,36 +511,44 @@ async function loadNews()
                     '"A quiet world is still a world worth wandering."'
                 )
             }
-        } else {
+        } else
+        {
             newsList.innerHTML = articles.map(newsCardHTML).join('')
 
-            newsList.querySelectorAll('.fav-star-btn').forEach(btn => {
+            newsList.querySelectorAll('.fav-star-btn').forEach(btn =>
+            {
                 btn.addEventListener('click', e =>
                 {
                     e.stopPropagation()
-                    try {
+                    try
+                    {
                         const card = btn.closest('.news-card')
-                        const article = JSON.parse(unescHtml(card.dataset.article))
+                        const article = normalizeArticle(JSON.parse(unescHtml(card.dataset.article)))
                         toggleFavArticle(article)
                         const now = isFavArticle(article.url)
                         btn.textContent = now ? '⭐' : '☆'
                         btn.style.opacity = now ? '1' : '0.35'
                         btn.title = now ? 'Remove from favourites' : 'Save to favourites'
                         playSfx(now ? 'success' : 'back')
-                    } catch (err) {
+                    } catch (err)
+                    {
                         console.error('[Star] article parse error:', err)
                         playSfx('error')
                     }
                 })
             })
 
-            newsList.querySelectorAll('.news-card').forEach(card => {
-                card.addEventListener('click', e => {
+            newsList.querySelectorAll('.news-card').forEach(card =>
+            {
+                card.addEventListener('click', e =>
+                {
                     if (e.target.classList.contains('fav-star-btn')) return
-                    try {
-                        const article = JSON.parse(unescHtml(card.dataset.article))
+                    try
+                    {
+                        const article = normalizeArticle(JSON.parse(unescHtml(card.dataset.article)))
                         showArticleDetail(article)
-                    } catch (err) {
+                    } catch (err)
+                    {
                         console.error('[News] card parse error:', err)
                         playSfx('error')
                     }
@@ -528,13 +560,15 @@ async function loadNews()
         await playSfx('success')
     }
 
-    if (btnNews) {
+    if (btnNews)
+    {
         btnNews.disabled = false
         btnNews.textContent = 'Load News'
     }
 }
 
-function malCardHTML(anime) {
+function malCardHTML(anime)
+{
     const score = anime.score ? `⭐ ${anime.score}` : ''
     const eps = anime.episodes ? `· ${anime.episodes} eps` : ''
     const status = anime.status || ''
@@ -563,7 +597,8 @@ function malCardHTML(anime) {
   `
 }
 
-function showAnimeDetail(anime) {
+function showAnimeDetail(anime)
+{
     const img = anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || ''
     const score = anime.score ? `⭐ ${anime.score}` : 'N/A'
     const eps = anime.episodes ? `${anime.episodes} eps` : '?'
@@ -624,12 +659,14 @@ function showAnimeDetail(anime) {
     </div>
   `
 
-    $('mal-back')?.addEventListener('click', () => {
+    $('mal-back')?.addEventListener('click', () =>
+    {
         playSfx('back')
         searchMAL(malInput.value)
     })
 
-    $('detail-star-btn')?.addEventListener('click', () => {
+    $('detail-star-btn')?.addEventListener('click', () =>
+    {
         toggleFavAnime(anime)
         const now = isFavAnime(anime.mal_id)
         const btn = $('detail-star-btn')
@@ -640,8 +677,10 @@ function showAnimeDetail(anime) {
         playSfx(now ? 'success' : 'back')
     })
 
-    if (watchUrl && window.api?.openExternal) {
-        $('trailer-open-btn')?.addEventListener('click', () => {
+    if (watchUrl && window.api?.openExternal)
+    {
+        $('trailer-open-btn')?.addEventListener('click', () =>
+        {
             playSfx('open')
             window.api.openExternal(watchUrl)
         })
@@ -669,9 +708,11 @@ async function searchMAL(query)
 
     const list = result.data?.data || result.data || []
 
-    if (list.length === 0) {
+    if (list.length === 0)
+    {
         malOutput.innerHTML = emptyState('📖', 'No results found for that title.', '"Not all knowledge is written in the grimoires of this world."')
-    } else {
+    } else
+    {
         malOutput.innerHTML = `<div class="news-list">${list.map(malCardHTML).join('')}</div>`
 
         malOutput.querySelectorAll('.mal-card').forEach(card =>
@@ -689,13 +730,15 @@ async function searchMAL(query)
                     btn.style.opacity = now ? '1' : '0.35'
                     btn.title = now ? 'Remove from favourites' : 'Save to favourites'
                     playSfx(now ? 'success' : 'back')
-                } catch (err) {
+                } catch (err)
+                {
                     console.error('[Star] anime parse error:', err)
                     playSfx('error')
                 }
             })
 
-            card.addEventListener('click', async e => {
+            card.addEventListener('click', async e =>
+            {
                 if (e.target.classList.contains('fav-star-btn')) return
                 const id = card.dataset.malId
                 if (!id) return
@@ -707,10 +750,13 @@ async function searchMAL(query)
                 if (detail.ok && detail.data && Object.keys(detail.data).length)
                 {
                     showAnimeDetail(detail.data)
-                } else {
-                    try {
+                } else
+                {
+                    try
+                    {
                         showAnimeDetail(JSON.parse(unescHtml(card.dataset.anime)))
-                    } catch {
+                    } catch
+                    {
                         malOutput.innerHTML = emptyState('❄️', 'Could not load details.', '')
                         await playSfx('error')
                     }
@@ -756,9 +802,11 @@ function isFavArticle(url)
 function toggleFavAnime(anime)
 {
     let list = getFavAnime()
-    if (isFavAnime(anime.mal_id)) {
+    if (isFavAnime(anime.mal_id))
+    {
         list = list.filter(a => String(a.mal_id) !== String(anime.mal_id))
-    } else {
+    } else
+    {
         list.push({
             mal_id: anime.mal_id,
             title: anime.title,
@@ -774,37 +822,44 @@ function toggleFavAnime(anime)
     renderFavourites()
 }
 
-function toggleFavArticle(article) {
+function toggleFavArticle(rawArticle)
+{
+    const article = normalizeArticle(rawArticle)
     let list = getFavArticles()
-    if (isFavArticle(article.url)) {
+    if (isFavArticle(article.url))
+    {
         list = list.filter(a => a.url !== article.url)
-    } else {
+    } else
+    {
         list.push({
             title: article.title,
             url: article.url,
             source_name: article.source_name,
             summary: article.summary,
-            published_at: article.published_at
+            published_at: article.published_at,
+            image: article.image
         })
     }
     saveFavArticles(list)
     renderFavourites()
 }
 
-function renderFavourites() {
+function renderFavourites()
+{
     const animeList = $('fav-anime-list')
     const animeEmpty = $('fav-anime-empty')
     const articlesList = $('fav-articles-list')
     const articlesEmpty = $('fav-articles-empty')
 
     const anime = getFavAnime()
-    const articles = getFavArticles()
+    const articles = getFavArticles().map(normalizeArticle)
 
     if (anime.length === 0)
     {
         if (animeEmpty) animeEmpty.style.display = 'block'
         if (animeList) animeList.innerHTML = ''
-    } else {
+    } else
+    {
         animeEmpty.style.display = 'none'
         animeList.innerHTML = anime.map(a => `
       <div class="news-card mal-card" data-mal-id="${a.mal_id}" style="display:flex;gap:14px;align-items:flex-start;cursor:pointer;">
@@ -818,8 +873,10 @@ function renderFavourites() {
       </div>
     `).join('')
 
-        animeList.querySelectorAll('.fav-remove-btn').forEach(btn => {
-            btn.addEventListener('click', e => {
+        animeList.querySelectorAll('.fav-remove-btn').forEach(btn =>
+        {
+            btn.addEventListener('click', e =>
+            {
                 e.stopPropagation()
                 saveFavAnime(getFavAnime().filter(a => String(a.mal_id) !== String(btn.dataset.malId)))
                 renderFavourites()
@@ -829,7 +886,8 @@ function renderFavourites() {
 
         animeList.querySelectorAll('.mal-card').forEach(card =>
         {
-            card.addEventListener('click', async e => {
+            card.addEventListener('click', async e =>
+            {
                 if (e.target.classList.contains('fav-remove-btn')) return
                 const id = card.dataset.malId
                 if (!id) return
@@ -847,18 +905,19 @@ function renderFavourites() {
     {
         if (articlesEmpty) articlesEmpty.style.display = 'block'
         if (articlesList) articlesList.innerHTML = ''
-
-    } else {
+    } else
+    {
         articlesEmpty.style.display = 'none'
-        articlesList.innerHTML = articles.map(a => {
+        articlesList.innerHTML = articles.map(a =>
+        {
             const date = a.published_at
                 ? new Date(a.published_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })
                 : '—'
             return `
-        <div class="news-card" data-url="${escHtml(a.url || '')}" data-article="${escHtml(JSON.stringify(a))}" style="cursor:pointer;">
-          <div class="news-card-source">${escHtml(a.source_name || 'ANN')}</div>
-          <div class="news-card-title">${escHtml(a.title || '')}</div>
-          <div class="news-card-summary">${escHtml(a.summary || '')}</div>
+        <div class="news-card" data-url="${escHtml(a.url)}" data-article="${escHtml(JSON.stringify(a))}" style="cursor:pointer;">
+          <div class="news-card-source">${escHtml(a.source_name)}</div>
+          <div class="news-card-title">${escHtml(a.title)}</div>
+          <div class="news-card-summary">${escHtml(a.summary)}</div>
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div class="news-card-time">${date}</div>
             <button class="fav-remove-btn" data-url="${escHtml(a.url)}" style="background:none;border:none;cursor:pointer;color:var(--gold);font-size:18px;opacity:0.55;">✕</button>
@@ -878,13 +937,14 @@ function renderFavourites() {
             })
         })
 
-        articlesList.querySelectorAll('.news-card').forEach(card => {
+        articlesList.querySelectorAll('.news-card').forEach(card =>
+        {
             card.addEventListener('click', e =>
             {
                 if (e.target.classList.contains('fav-remove-btn')) return
                 try
                 {
-                    const article = JSON.parse(unescHtml(card.dataset.article))
+                    const article = normalizeArticle(JSON.parse(unescHtml(card.dataset.article)))
                     playSfx('open')
                     window.navigateTo?.('news')
                     showArticleDetail(article)
@@ -967,7 +1027,6 @@ function wireWebviewDebug(view, name)
 
     view.addEventListener('did-navigate', e =>
     {
-
         console.log(`[${name}] navigated:`, e.url)
         if (name === 'ddg')
         {
@@ -978,7 +1037,6 @@ function wireWebviewDebug(view, name)
                 if (q && ddgInput) ddgInput.value = decodeURIComponent(q)
             } catch {}
         }
-
     })
 
     view.addEventListener('did-fail-load', e =>
@@ -1024,7 +1082,8 @@ async function searchManga(query)
     try
     {
         const result = await API.get(`/api/anime/manga?q=${encodeURIComponent(query.trim())}`)
-        if (result.ok && result.data?.data?.url) {
+        if (result.ok && result.data?.data?.url)
+        {
             mangaWebview.src = result.data.data.url
             await playSfx('open')
         } else
@@ -1184,22 +1243,26 @@ async function refreshOutputDevices()
     })
 }
 
-refreshDevicesBtn?.addEventListener('click', () => {
+refreshDevicesBtn?.addEventListener('click', () =>
+{
     playSfx('ui')
     refreshOutputDevices()
 })
 
-outputDeviceSel?.addEventListener('change', () => {
+outputDeviceSel?.addEventListener('change', () =>
+{
     soundInvoke('setOutputDevice', Number(outputDeviceSel.value))
 })
 
-setInterval(async () => {
+setInterval(async () =>
+{
     if (!nowPlayingBadge) return
     const playing = await soundInvoke('isMusicPlaying')
     nowPlayingBadge.textContent = playing ? 'Playing' : 'Idle'
 }, 2000)
 
-globalSearch?.addEventListener('keydown', e => {
+globalSearch?.addEventListener('keydown', e =>
+{
     if (e.key !== 'Enter') return
     const q = globalSearch.value.trim()
     if (!q) return
@@ -1213,36 +1276,44 @@ btnHealth?.addEventListener('click', checkHealth)
 btnNews?.addEventListener('click', loadNews)
 
 ddgBtn?.addEventListener('click', () => ddgSearch(ddgInput.value))
-ddgInput?.addEventListener('keydown', e => {
+ddgInput?.addEventListener('keydown', e =>
+{
     if (e.key === 'Enter') ddgSearch(ddgInput.value)
 })
 
 malBtn?.addEventListener('click', () => searchMAL(malInput.value))
-malInput?.addEventListener('keydown', e => {
+malInput?.addEventListener('keydown', e =>
+{
     if (e.key === 'Enter') searchMAL(malInput.value)
 })
 
 mangaBtn?.addEventListener('click', () => searchManga(mangaInput.value))
-mangaInput?.addEventListener('keydown', e => {
+mangaInput?.addEventListener('keydown', e =>
+{
     if (e.key === 'Enter') searchManga(mangaInput.value)
 })
 
-document.addEventListener('keydown', e => {
-    if (e.ctrlKey && e.key === 'k') {
+document.addEventListener('keydown', e =>
+{
+    if (e.ctrlKey && e.key === 'k')
+    {
         e.preventDefault()
         globalSearch?.focus()
         playSfx('ui')
     }
 })
 
-if (window.api?.onNav) {
-    window.api.onNav(section => {
+if (window.api?.onNav)
+{
+    window.api.onNav(section =>
+    {
         playSfx('ui')
         window.navigateTo?.(section)
     })
 }
 
-;(async () => {
+;(async () =>
+{
     setApiStatus(false)
     if (apiStatus) apiStatus.textContent = 'Connecting…'
 
@@ -1253,7 +1324,8 @@ if (window.api?.onNav) {
 
     initWebviews()
     refreshOutputDevices()
-    soundInvoke('categories').then(cats => {
+    soundInvoke('categories').then(cats =>
+    {
         if (categoriesBadge && Array.isArray(cats)) categoriesBadge.textContent = String(cats.length)
     })
 
