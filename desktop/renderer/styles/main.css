@@ -1383,6 +1383,52 @@ html, body
     }
 }
 
+
+/* ── Settings page scrollbar ───────────────────────────── */
+#section-settings
+{
+    min-height: 0;
+}
+
+#section-settings.visible
+{
+    display: block;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(240, 208, 112, 0.75) rgba(255, 255, 255, 0.05);
+}
+
+#section-settings.visible::-webkit-scrollbar
+{
+    width: 10px;
+}
+
+#section-settings.visible::-webkit-scrollbar-track
+{
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 999px;
+}
+
+#section-settings.visible::-webkit-scrollbar-thumb
+{
+    background: linear-gradient(180deg, var(--gold), var(--gold-bright));
+    border-radius: 999px;
+    border: 2px solid rgba(2, 4, 8, 0.35);
+}
+
+#section-settings.visible::-webkit-scrollbar-thumb:hover
+{
+    background: linear-gradient(180deg, var(--gold-bright), var(--gold-warm));
+}
+
+#section-settings .glass-card
+{
+    margin-bottom: 0;
+}
+
 /* ============================================================
    SCROLLBAR — gold to teal
 ============================================================ */

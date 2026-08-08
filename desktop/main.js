@@ -640,10 +640,10 @@ function createWindow()
 
     mainWindow.loadFile(path.join(__dirname, 'loading.html'))
 
-    if (isDev)
-    {
+//    if (isDev)
+
         mainWindow.webContents.openDevTools({ mode: 'detach' })
-    }
+
 
     mainWindow.webContents.setWindowOpenHandler(({ url }) =>
     {

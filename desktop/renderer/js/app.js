@@ -57,6 +57,10 @@ const refreshDevicesBtn = $('audio-output-refresh')
 const outputDeviceSel = $('audio-output-device')
 const nowPlayingBadge = $('audio-now-playing')
 const categoriesBadge = $('audio-categories-count')
+const musicSelect = $('audio-music-select');
+const refreshMusicBtn = $('audio-music-refresh');
+const playSelectedMusicBtn = $('audio-music-play-selected');
+
 
 const FAV_ANIME_KEY = 'fav_anime'
 const FAV_ARTICLES_KEY = 'fav_articles'
@@ -184,6 +188,69 @@ async function soundInvoke(method, ...args)
         return null
     }
 }
+
+async function refreshMusicTracks()
+{
+    if (!musicSelect) return
+
+    const tracks = await soundInvoke('listMusic')
+    musicSelect.innerHTML = ''
+
+    if (!Array.isArray(tracks) || tracks.length === 0)
+    {
+        const opt = document.createElement('option')
+        opt.value = ''
+        opt.textContent = 'No tracks found'
+        musicSelect.appendChild(opt)
+
+        musicSelect.disabled = true
+        if (playSelectedMusicBtn) playSelectedMusicBtn.disabled = true
+        return
+    }
+
+    musicSelect.disabled = false
+    if (playSelectedMusicBtn) playSelectedMusicBtn.disabled = false
+
+    const placeholder = document.createElement('option')
+    placeholder.value = ''
+    placeholder.textContent = 'Select background song...'
+    musicSelect.appendChild(placeholder)
+
+    tracks.forEach(track =>
+    {
+        const opt = document.createElement('option')
+        opt.value = track
+        opt.textContent = track
+        musicSelect.appendChild(opt)
+    })
+
+    const savedTrack = localStorage.getItem(AUDIO_MUSIC_TRACK_KEY)
+    if (savedTrack && tracks.includes(savedTrack))
+    {
+        musicSelect.value = savedTrack
+        if (nowPlayingBadge?.textContent === 'Idle') nowPlayingBadge.textContent = savedTrack
+    }
+}
+
+async function playSelectedMusic()
+{
+    if (!musicSelect) return
+
+    const track = musicSelect.value
+    if (!track) return
+
+    await playMusic(track)
+    if (nowPlayingBadge) nowPlayingBadge.textContent = track
+}
+
+async function syncMusicUi()
+{
+    if (!musicSelect) return
+
+    const savedTrack = localStorage.getItem(AUDIO_MUSIC_TRACK_KEY)
+    if (savedTrack) musicSelect.value = savedTrack
+}
+
 
 async function playSfx(category)
 {
@@ -1053,17 +1120,6 @@ function initWebviews()
     {
         ddgWebview.src = ddgWebview.dataset.src || 'https://duckduckgo.com/?kae=d&k1=-1&kp=-2'
     }
-
-    if (animeWebview && (!animeWebview.getURL?.() || animeWebview.getURL?.() === 'about:blank'))
-    {
-        animeWebview.src = animeWebview.dataset.src || 'https://9anime.org.lv'
-    }
-
-    if (mangaWebview && (!mangaWebview.getURL?.() || mangaWebview.getURL?.() === 'about:blank'))
-    {
-        const initial = mangaWebview.dataset.src || 'https://mangadex.org/'
-        mangaWebview.src = initial
-    }
 }
 
 function ddgSearch(query)
@@ -1077,21 +1133,26 @@ function ddgSearch(query)
 async function searchManga(query)
 {
     if (!query.trim()) return
+
+    window.navigateTo?.('manga')
     if (!mangaWebview) return
 
     try
     {
         const result = await API.get(`/api/anime/manga?q=${encodeURIComponent(query.trim())}`)
+
         if (result.ok && result.data?.data?.url)
         {
             mangaWebview.src = result.data.data.url
             await playSfx('open')
-        } else
+        }
+        else
         {
             mangaWebview.src = `https://mangadex.org/search?q=${encodeURIComponent(query.trim())}`
             await playSfx('open')
         }
-    } catch (err)
+    }
+    catch (err)
     {
         console.warn('[manga] search failed, falling back:', err)
         mangaWebview.src = `https://mangadex.org/search?q=${encodeURIComponent(query.trim())}`
@@ -1207,9 +1268,24 @@ if (sfxVolumeSlider)
 playToggleBtn?.addEventListener('click', async () =>
 {
     await playSfx('ui')
+
+    const selectedTrack = musicSelect?.value?.trim()
     const playing = await soundInvoke('isMusicPlaying')
-    if (!playing) await ensureBackgroundMusic()
-    if (nowPlayingBadge) nowPlayingBadge.textContent = 'Playing'
+
+    if (!playing)
+    {
+        if (selectedTrack)
+        {
+            await playMusic(selectedTrack)
+            if (nowPlayingBadge) nowPlayingBadge.textContent = selectedTrack
+        }
+        else
+        {
+            await ensureBackgroundMusic()
+            const savedTrack = localStorage.getItem(AUDIO_MUSIC_TRACK_KEY)
+            if (nowPlayingBadge) nowPlayingBadge.textContent = savedTrack || 'Playing'
+        }
+    }
 })
 
 stopBtn?.addEventListener('click', async () =>
@@ -1243,6 +1319,27 @@ async function refreshOutputDevices()
     })
 }
 
+musicSelect?.addEventListener('change', () =>
+{
+    const track = musicSelect.value
+    if (!track) return
+    localStorage.setItem(AUDIO_MUSIC_TRACK_KEY, track)
+    if (nowPlayingBadge?.textContent === 'Idle') nowPlayingBadge.textContent = track
+})
+
+refreshMusicBtn?.addEventListener('click', async () =>
+{
+    await playSfx('ui');
+    await refreshMusicTracks();
+    await syncMusicUi();
+});
+
+playSelectedMusicBtn?.addEventListener('click', async () =>
+{
+    await playSfx('ui');
+    await playSelectedMusic();
+});
+
 refreshDevicesBtn?.addEventListener('click', () =>
 {
     playSfx('ui')
@@ -1257,8 +1354,18 @@ outputDeviceSel?.addEventListener('change', () =>
 setInterval(async () =>
 {
     if (!nowPlayingBadge) return
+
     const playing = await soundInvoke('isMusicPlaying')
-    nowPlayingBadge.textContent = playing ? 'Playing' : 'Idle'
+    const savedTrack = localStorage.getItem(AUDIO_MUSIC_TRACK_KEY)
+
+    if (playing)
+    {
+        nowPlayingBadge.textContent = savedTrack || 'Playing'
+    }
+    else
+    {
+        nowPlayingBadge.textContent = 'Idle'
+    }
 }, 2000)
 
 globalSearch?.addEventListener('keydown', e =>
@@ -1303,14 +1410,7 @@ document.addEventListener('keydown', e =>
     }
 })
 
-if (window.api?.onNav)
-{
-    window.api.onNav(section =>
-    {
-        playSfx('ui')
-        window.navigateTo?.(section)
-    })
-}
+
 
 ;(async () =>
 {
@@ -1323,7 +1423,10 @@ if (window.api?.onNav)
     wireWebviewDebug(mangaWebview, 'manga')
 
     initWebviews()
-    refreshOutputDevices()
+    await refreshOutputDevices()
+    await refreshMusicTracks()
+    await syncMusicUi()
+
     soundInvoke('categories').then(cats =>
     {
         if (categoriesBadge && Array.isArray(cats)) categoriesBadge.textContent = String(cats.length)
@@ -1332,6 +1435,5 @@ if (window.api?.onNav)
     await applyAudioSettings()
     const healthy = await checkHealth()
     renderFavourites()
-
     if (healthy) await ensureBackgroundMusic()
 })()
