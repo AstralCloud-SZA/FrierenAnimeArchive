@@ -12,7 +12,8 @@
      Scarf blue   → lightest frost, very subtle
 ============================================================ */
 
-:root {
+:root
+{
     /* ── Backgrounds: void black, Frieren's cloak at midnight ── */
     --bg-deep:        #020408;
     --bg-mid:         #04070f;
@@ -475,8 +476,11 @@ html, body
 /* ============================================================
    MAIN CONTENT — semi-transparent so canvas bleeds through
 ============================================================ */
-.main {
+.main
+{
     grid-area: main;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
     padding: 26px;
     min-height: 0;
@@ -486,16 +490,19 @@ html, body
             linear-gradient(160deg, rgba(2, 4, 8, 0.82) 0%, rgba(3, 6, 16, 0.82) 50%, rgba(2, 4, 8, 0.82) 100%);
 }
 
-.section {
+.section
+{
     display: none;
-    min-height: 100%;
+    min-height: 0;
     min-width: 0;
 }
 
-.section.visible {
+.section.visible
+{
     display: flex;
     flex-direction: column;
     gap: 12px;
+    flex: 1 1 auto;
     min-height: 0;
     overflow: auto;
 }
@@ -547,7 +554,8 @@ html, body
 }
 
 /* Gold-white shimmer top edge */
-.glass-card::before {
+.glass-card::before
+{
     content: "";
     position: absolute;
     top: 0; left: 6%; right: 6%;
@@ -556,7 +564,8 @@ html, body
     opacity: 0.55;
 }
 
-.card-heading {
+.card-heading
+{
     font-family: var(--font-title);
     font-size: 21px;
     font-weight: 600;
@@ -569,7 +578,8 @@ html, body
 }
 
 /* Gold divider */
-.card-heading::after {
+.card-heading::after
+{
     content: "";
     flex: 1;
     height: 1px;
@@ -591,7 +601,8 @@ html, body
 ============================================================ */
 .news-list { display: flex; flex-direction: column; gap: 13px; }
 
-.news-card {
+.news-card
+{
     background: linear-gradient(135deg, rgba(240, 208, 112, 0.07) 0%, rgba(253, 246, 232, 0.04) 100%);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -603,7 +614,8 @@ html, body
 }
 
 /* Gold → teal left accent */
-.news-card::before {
+.news-card::before
+{
     content: "";
     position: absolute;
     left: 0; top: 0; bottom: 0;
@@ -613,7 +625,8 @@ html, body
     transition: opacity 0.22s;
 }
 
-.news-card:hover {
+.news-card:hover
+{
     border-color: rgba(240, 208, 112, 0.50);
     background: linear-gradient(135deg, rgba(240, 208, 112, 0.13) 0%, rgba(253, 246, 232, 0.08) 100%);
     transform: translateX(4px);
@@ -622,7 +635,8 @@ html, body
 
 .news-card:hover::before { opacity: 1; }
 
-.news-card-source {
+.news-card-source
+{
     font-family: var(--font-title);
     font-size: 14px;
     text-transform: uppercase;
@@ -631,7 +645,8 @@ html, body
     margin-bottom: 6px;
 }
 
-.news-card-title {
+.news-card-title
+{
     font-family: var(--font-title);
     font-size: 22px;
     font-weight: 600;
@@ -640,14 +655,16 @@ html, body
     margin-bottom: 7px;
 }
 
-.news-card-summary {
+.news-card-summary
+{
     font-family: var(--font-body);
     font-size: 19px;
     color: var(--gold-bright);
     line-height: 1.65;
 }
 
-.news-card-time {
+.news-card-time
+{
     margin-top: 9px;
     font-family: var(--font-mono);
     font-size: 15px;
@@ -659,7 +676,8 @@ html, body
     display: none;
 }
 
-#news-reader {
+#news-reader
+{
     display: none;
     min-height: 0;
 }
@@ -798,21 +816,16 @@ html, body
     font-style: italic;
 }
 
-/* ── Webview enforcement — native elements ignore overflow:hidden ── */
-.webview
+/* ── Webviews (DDG / Anime / Manga) ───────────────────────── */
+.trailer-mount
 {
-    display: block !important;
-    flex-shrink: 0 !important;
-}
-
-.trailer-mount {
     overflow: visible !important;
     contain: none !important;
 }
 
-
-.webview {
-    display: block !important;
+.webview
+{
+    display: block;
     width: 100%;
     flex: 1 1 auto;
     min-height: 420px;
@@ -821,36 +834,30 @@ html, body
     border: 1px solid var(--border);
     border-radius: 12px;
     background: var(--bg-deep);
-    flex-shrink: 0;
 }
 
-#news-webview,
-#anime-webview {
+/* Optional per-section tweaks */
+.webview-anime
+{
     min-height: 500px;
 }
 
-#manga-webview
+.webview-manga
 {
     min-height: 380px;
 }
 
 
-#ddg-webview
-{
-    height: min(68vh, 820px);
-    min-height: 420px;
-}
-
-
-
 /* ── Favourites tabs ──────────────────────── */
-.fav-tabs {
+.fav-tabs
+{
     display: flex;
     gap: 8px;
     margin: 16px 0 12px;
 }
 
-.fav-tab {
+.fav-tab
+{
     background: rgba(240, 208, 112, 0.08);
     border: 1px solid var(--border);
     border-radius: 999px;
@@ -864,7 +871,8 @@ html, body
 }
 
 .fav-tab:hover,
-.fav-tab.active {
+.fav-tab.active
+{
     background: linear-gradient(135deg, var(--gold), var(--teal));
     border-color: var(--gold-bright);
     color: #000;
@@ -875,7 +883,8 @@ html, body
 /* ============================================================
    CONSOLE OUTPUT
 ============================================================ */
-.console-out {
+.console-out
+{
     background: rgba(2, 4, 8, 0.95);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -890,7 +899,8 @@ html, body
 }
 
 /* ═══ CUSTOM TITLE BAR ═══════════════════════════════════════ */
-.titlebar {
+.titlebar
+{
     position:        fixed;
     top:             0;
     left:            0;

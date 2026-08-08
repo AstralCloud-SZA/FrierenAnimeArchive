@@ -33,7 +33,7 @@ const newsList        = $('news-list')
 const newsReader      = $('news-reader')
 const newsReaderBack  = $('news-reader-back')
 const newsReaderTitle = $('news-reader-title')
-const newsWebview     = $('news-webview')
+//const newsWebview     = $('news-webview')
 const btnHealth       = $('btn-health')
 const btnNews         = $('btn-news')
 const globalSearch    = $('global-search')
@@ -363,12 +363,6 @@ function resetNewsReader ()
     if (old) old.remove()
 
     if (newsReaderTitle) newsReaderTitle.textContent = 'Article'
-
-    if (newsWebview)
-    {
-        newsWebview.style.display = 'none'
-        newsWebview.src = 'about:blank'
-    }
 }
 
 function closeNewsDetail ()
@@ -1172,6 +1166,24 @@ if (ddgWebview)
     })
 }
 
+function initWebviews ()
+{
+    if (ddgWebview && !ddgWebview.src || ddgWebview?.src === 'about:blank')
+    {
+        ddgWebview.src = ddgWebview.dataset.src || 'https://duckduckgo.com/?kae=d&k1=-1&kp=-2'
+    }
+
+    if (animeWebview && (!animeWebview.src || animeWebview.src === 'about:blank'))
+    {
+        animeWebview.src = animeWebview.dataset.src || 'https://9anime.org.lv'
+    }
+
+    if (mangaWebview && (!mangaWebview.src || mangaWebview.src === 'about:blank'))
+    {
+        mangaWebview.src = mangaWebview.dataset.src || 'about:blank'
+    }
+
+}
 // ═══════════════════════════════════════════════════════════
 //  9. WATCH ANIME — 9Anime in-app webview
 // ═══════════════════════════════════════════════════════════
